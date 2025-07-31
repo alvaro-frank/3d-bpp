@@ -1,3 +1,5 @@
+import numpy as np
+
 class Bin:
     def __init__(self, width, height, depth):
         self.width = width
@@ -36,7 +38,7 @@ class Bin:
         z = self.find_lowest_z((bw, bh, bd), x, y)
 
         # Verifica se cabe dentro do bin
-        if z + bd > self.depth:
+        if x + bw > self.width or y + bh > self.height or z + bd > self.depth:
             return False
 
         # Verifica colisão com outras caixas
@@ -72,3 +74,22 @@ class Bin:
                     max_z = top_z
 
         return max_z
+
+    def calculate_compactness(self, placed_box):
+        if len(self.boxes) <= 1:
+            return 0.0  # first box, no neighbors to cluster with
+
+        x1, y1, z1 = placed_box.position
+        distances = []
+        for box in self.boxes:
+            if box == placed_box:
+                continue
+            x2, y2, z2 = box.position
+            dist = np.linalg.norm([x1 - x2, y1 - y2, z1 - z2])
+            distances.append(dist)
+
+        if distances:
+            avg_dist = sum(distances) / len(distances)
+            return max(0.0, 1.0 - avg_dist / max(self.width, self.height, self.depth))
+        else:
+            return 0.0

@@ -53,16 +53,38 @@ class PackingEnv:
         # Tenta colocar a caixa
         success = self.bin.place_box(self.current_box, (x, y), rot)
 
-        # Recompensa e info
-        reward = 1.0 if success else -1.0
-        info = {"success": success}
+        if not success:
+          reward = -10.0
+          done = True
+          obs = np.zeros(4, dtype=np.float32)
+          info = {"success": False, "terminated_due_to_failed_placement": True}
+          return obs, reward, done, info
 
-        # Atualiza passo
+        # === Advanced Reward Calculation ===
+        placed_box = self.current_box
+        placed_volume = placed_box.get_volume()
+        total_volume = self.bin_volume
+
+        # Relative position score: encourage placing boxes near the bottom
+        z_pos = placed_box.position[2]
+        bottom_reward = (self.bin.depth - z_pos) / self.bin.depth  # Higher reward if closer to the bottom
+
+        # Volume utilization reward: encourage large box placements
+        volume_reward = placed_volume / total_volume  # normalized volume contribution
+
+        # Compactness reward: penalize if placed too far from others
+        compactness_reward = self.bin.calculate_compactness(placed_box)
+
+        # Final reward
+        reward = 1.0 + 5.0 * volume_reward + 2.0 * bottom_reward + 2.0 * compactness_reward
+
+        info = {"success": True}
+
         self.current_step += 1
         done = self.current_step >= self.max_boxes
 
         if done:
-            obs = np.zeros(4, dtype=np.float32)  # Observação neutra no final
+            obs = np.zeros(4, dtype=np.float32)
         else:
             self.current_box = self.boxes[self.current_step]
             obs = self._get_obs()

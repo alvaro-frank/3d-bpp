@@ -28,3 +28,6 @@ class Box:
             return (d, w, h)
         elif rotation_type == 5:
             return (d, h, w)
+
+    def get_rotated_size(self):
+        return self.rotate(self.rotation_type)

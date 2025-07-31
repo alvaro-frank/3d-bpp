@@ -3,7 +3,10 @@ from environment.packing_env import PackingEnv
 from agents.dqn_agent import DQNAgent
 from evals.evaluate_dqn import DQNAgentEvaluator
 
-NUM_EPISODES = 500
+from utils.visualization import plot_bin
+import os
+
+NUM_EPISODES = 100
 MAX_BOXES = 20
 BIN_SIZE = (10, 10, 10)
 TARGET_UPDATE = 10
@@ -16,6 +19,10 @@ volume_utilizations = []
 
 agent = DQNAgent(state_dim, action_dim)
 
+gif_dir = "gif_frames_v2"
+os.makedirs(gif_dir, exist_ok=True)
+frame_count = 0
+
 for episode in range(NUM_EPISODES):
     state = env.reset()
     total_reward = 0
@@ -24,6 +31,11 @@ for episode in range(NUM_EPISODES):
     while not done:
         action = agent.get_action(state, env.action_space)
         next_state, reward, done, info = env.step(action)
+
+        frame_path = os.path.join(gif_dir, f"frame_{frame_count:04d}.png")
+        plot_bin(env.bin.boxes, env.bin_size, save_path=frame_path, title=f"Episode {episode + 1} Step {frame_count}")
+        frame_count += 1
+
         agent.store_transition(state, action, reward, next_state, done)
         agent.train()
         state = next_state
@@ -44,3 +56,18 @@ avg_reward = evaluator.evaluate()
 
 avg_volume_utilization = sum(volume_utilizations) / len(volume_utilizations)
 print(f"\n💡 Média da porcentagem de volume utilizado durante treino: {avg_volume_utilization:.2f}%")
+
+import imageio
+
+def create_gif(frame_folder, gif_name="packing.gif", fps=2):
+    frames = []
+    files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
+    for file_name in files:
+        image_path = os.path.join(frame_folder, file_name)
+        frames.append(imageio.imread(image_path))
+    imageio.mimsave(gif_name, frames, fps=fps)
+
+create_gif(gif_dir, "packing.gif", fps=2)
+
+import shutil
+shutil.rmtree(gif_dir)
