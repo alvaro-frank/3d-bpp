@@ -8,8 +8,7 @@ class Bin:
         self.boxes = []
 
     def bin_volume(self):
-        w, h, d = self.bin_size
-        return w * h * d
+        return self.width * self.height * self.depth
 
     def fits(self, box_dims, position):
         x, y, z = position
@@ -51,12 +50,6 @@ class Bin:
         self.boxes.append(box)
         return True
 
-    def get_placed_boxes_volume(self):
-        volume = 0
-        for box in self.boxes:  # ou qualquer estrutura que guarde as caixas colocadas
-            volume += box.get_volume()
-        return volume
-
     def find_lowest_z(self, box_dims, x, y):
         max_z = 0
         bw, bh, bd = box_dims
@@ -74,22 +67,3 @@ class Bin:
                     max_z = top_z
 
         return max_z
-
-    def calculate_compactness(self, placed_box):
-        if len(self.boxes) <= 1:
-            return 0.0  # first box, no neighbors to cluster with
-
-        x1, y1, z1 = placed_box.position
-        distances = []
-        for box in self.boxes:
-            if box == placed_box:
-                continue
-            x2, y2, z2 = box.position
-            dist = np.linalg.norm([x1 - x2, y1 - y2, z1 - z2])
-            distances.append(dist)
-
-        if distances:
-            avg_dist = sum(distances) / len(distances)
-            return max(0.0, 1.0 - avg_dist / max(self.width, self.height, self.depth))
-        else:
-            return 0.0

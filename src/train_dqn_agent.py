@@ -25,6 +25,7 @@ frame_count = 0
 
 for episode in range(NUM_EPISODES):
     state = env.reset()
+    agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
     total_reward = 0
     done = False
 
@@ -46,16 +47,7 @@ for episode in range(NUM_EPISODES):
     pct_volume_used = (volume_used / bin_volume) * 100
     volume_utilizations.append(pct_volume_used)
 
-    #if episode % TARGET_UPDATE == 0:
-        #agent.update_target()
-
-    print(f"🎯 Episódio {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}")
-
-evaluator = DQNAgentEvaluator(agent, env, episodes=NUM_EPISODES, render=False)
-avg_reward = evaluator.evaluate()
-
-avg_volume_utilization = sum(volume_utilizations) / len(volume_utilizations)
-print(f"\n💡 Média da porcentagem de volume utilizado durante treino: {avg_volume_utilization:.2f}%")
+    print(f"🎯 Episódio {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%")
 
 import imageio
 
