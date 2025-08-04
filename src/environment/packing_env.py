@@ -1,29 +1,53 @@
 import numpy as np
 import random
 import gym
+import os
+import imageio
 
 from environment.box import Box
 from environment.bin import Bin
 from utils.action_space import generate_discrete_actions
+from utils.visualization import plot_bin
 
 class PackingEnv(gym.Env):
-    def __init__(self, bin_size=(10, 10, 10), max_boxes=5):
+    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, generate_gif=False, gif_name="packing_dqn_agent.gif"):
         self.bin_size = bin_size
         self.max_boxes = max_boxes
         self.current_step = 0
         self.bin = None
         self.boxes = []
         self.current_box = None
+        
+        self.generate_gif = generate_gif
+        self.gif_name = gif_name
+        self.gif_dir = "agent_gif_frames"
+        self.frame_count = 0
+        self.frames = []
+
+        if self.generate_gif:
+            os.makedirs(self.gif_dir, exist_ok=True)
 
         # Ações discretas: (x, y, rot)
         self.discrete_actions = generate_discrete_actions(*self.bin_size[:2])
         self.action_space = gym.spaces.Discrete(len(self.discrete_actions))      
 
-    def reset(self):
+    def reset(self, seed=None):
+        if seed is not None:
+          random.seed(seed)
+          np.random.seed(seed)
+
         self.bin = Bin(*self.bin_size)
         self.current_step = 0
         self.boxes = self._generate_boxes(self.max_boxes)
         self.current_box = self.boxes[self.current_step]
+        
+        if self.generate_gif:
+            self.frame_count = 0
+            if os.path.exists(self.gif_dir):
+                import shutil
+                shutil.rmtree(self.gif_dir)
+            os.makedirs(self.gif_dir, exist_ok=True)
+
         return self._get_obs()
 
     def _generate_boxes(self, n):
@@ -56,9 +80,19 @@ class PackingEnv(gym.Env):
         if not success:
           reward = -10.0
           done = True
+
+          if self.generate_gif:
+            self._finalize_gif()
+          
           obs = np.zeros(4, dtype=np.float32)
           info = {"success": False, "terminated_due_to_failed_placement": True}
           return obs, reward, done, info
+
+        if self.generate_gif:
+          frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
+          plot_bin(self.bin.boxes, self.bin_size, save_path=frame_path,
+                    title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
+          self.frame_count += 1
 
         # === Advanced Reward Calculation ===
         placed_box = self.current_box
@@ -83,9 +117,10 @@ class PackingEnv(gym.Env):
 
         self.current_step += 1
         done = self.current_step >= self.max_boxes
-
+        
         if done:
             reward += 100.0 * self.get_terminal_reward()
+            self._finalize_gif()
             obs = np.zeros(4, dtype=np.float32)
         else:
             self.current_box = self.boxes[self.current_step]
@@ -93,31 +128,25 @@ class PackingEnv(gym.Env):
 
         return obs, reward, done, info
 
-    def place_box(self, box, position_xy, rotation_type):
-        x, y = position_xy
-        bw, bh, bd = box.rotate(rotation_type)
-
-        # Calcula z baseado na pilha mais baixa que suporta a caixa
-        z = self.bin.find_lowest_z((bw, bh, bd), x, y)
-
-        # Verifica se ultrapassa os limites do bin
-        if z + bd > self.bin.depth:
-            return False
-
-        # Verifica colisão com outras caixas
-        if self.bin.collides((bw, bh, bd), (x, y, z)):
-            return False
-
-        # Posiciona a caixa
-        box.rotation_type = rotation_type
-        box.place_at(x, y, z)
-        self.bin.boxes.append(box)
-        return True
-
     def render(self):
         print(f"Placed {len(self.bin.boxes)} boxes:")
         for b in self.bin.boxes:
             print(f"Box {b.id} at {b.position}, rotated {b.rotation_type}")
+
+    def _finalize_gif(self):
+        if not self.generate_gif:
+            return
+
+        frames = []
+        files = sorted([f for f in os.listdir(self.gif_dir) if f.endswith(".png")])
+        for file_name in files:
+            image_path = os.path.join(self.gif_dir, file_name)
+            frames.append(imageio.imread(image_path))
+
+        imageio.mimsave(self.gif_name, frames, fps=2)
+
+        import shutil
+        shutil.rmtree(self.gif_dir)
     
     @property
     def bin_volume(self):
