@@ -1,92 +1,80 @@
-
-import argparse
-import numpy as np
-import random
-from copy import deepcopy
-
-from environment.packing_env import PackingEnv
 from train.train_dqn_agent import train_dqn_agent
+from environment.packing_env import PackingEnv
+import numpy as np
 from utils.heuristic import heuristic_blb_packing
-from utils.repro import set_global_seed, make_seed_sequence
 
-def evaluate_dqn(agent, bin_size, max_boxes, seed, gif=False, gif_name=None):
-    env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, generate_gif=gif, gif_name=(gif_name or f"dqn_{seed}.gif"))
-    obs = env.reset(seed=seed)
+def evaluate_agent(agent, env_seed=42, generate_gif=True):
+    env = PackingEnv(bin_size=(10, 20, 10), max_boxes=20, generate_gif=generate_gif)
+    state = env.reset(seed=env_seed)
+    total_reward = 0
     done = False
     while not done:
-        action = agent.get_action(obs, env.action_space)
-        obs, reward, done, info = env.step(action)
-    score = env.get_terminal_reward() * 100.0
-    return score
+        action = agent.get_action(state, env.action_space)
+        state, reward, done, _ = env.step(action)
+        total_reward += reward
 
-def evaluate_heuristic_from_boxes(bin_size, boxes, gif=False, gif_name=None):
-    # deep copy boxes so we don't mutate caller
-    boxes_copy = [deepcopy(b) for b in boxes]
-    _, bbin = heuristic_blb_packing(bin_size, boxes_copy, try_rotations=True, generate_gif=gif, gif_name=(gif_name or "heuristic.gif"))
-    used = sum(b.get_volume() for b in bbin.boxes)
-    total = bbin.width * bbin.height * bbin.depth
-    return 100.0 * used / total
+    volume_used = env.get_placed_boxes_volume()
+    bin_volume = env.bin_volume
+    pct_volume_used = (volume_used / bin_volume) * 100
 
-def run_comparison(args):
-    set_global_seed(args.seed)
+    return pct_volume_used
 
-    # Train DQN
-    agent = train_dqn_agent(
-        num_episodes=args.episodes,
-        bin_size=tuple(args.bin_size),
-        max_boxes=args.max_boxes,
-        gif_name="packing_dqn_train.gif",
-        generate_gif=args.train_gif,
-    )
-
-    # Create a common test set of seeds for fair comparison
-    seeds = make_seed_sequence(args.seed, args.tests)
-
-    dqn_scores, heuristic_scores = [], []
-    best = {"dqn":(-1,None), "heuristic":(-1,None)}  # (score, seed)
-
-    for s in seeds:
-        # Generate identical box sequence by resetting env with seed, then copy env.boxes for heuristic
-        env = PackingEnv(bin_size=tuple(args.bin_size), max_boxes=args.max_boxes)
-        env.reset(seed=int(s))
-        boxes_for_heur = env.boxes
-
-        # Evaluate DQN with same seed
-        dqn_score = evaluate_dqn(agent, tuple(args.bin_size), args.max_boxes, int(s), gif=False)
-        heur_score = evaluate_heuristic_from_boxes(tuple(args.bin_size), boxes_for_heur, gif=False)
-
-        dqn_scores.append(dqn_score)
-        heuristic_scores.append(heur_score)
-
-        if dqn_score > best["dqn"][0]:
-            best["dqn"] = (dqn_score, int(s))
-        if heur_score > best["heuristic"][0]:
-            best["heuristic"] = (heur_score, int(s))
-
-        print(f"Seed {int(s)} -> DQN: {dqn_score:.2f}% | Heuristic: {heur_score:.2f}%")
-
-    print("\nDQN Avg:", np.mean(dqn_scores))
-    print("Heuristic Avg:", np.mean(heuristic_scores))
-
-    # GIFs for best cases
-    print(f"\nGenerating GIFs...")
-    # Heuristic GIF
-    env = PackingEnv(bin_size=tuple(args.bin_size), max_boxes=args.max_boxes)
-    env.reset(seed=best["heuristic"][1])
-    evaluate_heuristic_from_boxes(tuple(args.bin_size), env.boxes, gif=True, gif_name=f"heuristic_best_{best['heuristic'][1]}.gif")
-    # DQN GIF
-    evaluate_dqn(agent, tuple(args.bin_size), args.max_boxes, best["dqn"][1], gif=True, gif_name=f"dqn_best_{best['dqn'][1]}.gif")
+def evaluate_heuristic(seed=42, generate_gif=False):
+    # Create environment with fixed seed to get consistent boxes
+    env = PackingEnv(bin_size=(10, 20, 10), max_boxes=20)
+    env.reset(seed=seed)
+    
+    # Run your heuristic packing algorithm
+    placed_boxes, bin = heuristic_blb_packing(bin_size=env.bin_size, boxes=env.boxes, try_rotations=True, generate_gif=generate_gif, gif_name=f"packing_heuristic.gif")
+    
+    # Calculate reward or volume used — depending on your environment's logic
+    volume_used = sum(box.get_volume() for box in placed_boxes)
+    bin_volume = env.bin_volume  # total volume of the bin
+    
+    # Compute % volume used as a proxy for reward
+    pct_volume_used = (volume_used / bin_volume) * 100
+    
+    # If you want, convert this to reward similar to env.reward()
+    # Here, just return pct_volume_used as heuristic score
+    return pct_volume_used
 
 def main():
-    parser = argparse.ArgumentParser(description="Train DQN, run heuristic, compare on identical test sets, and make GIFs.")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--episodes", type=int, default=200)
-    parser.add_argument("--tests", type=int, default=10, help="number of test seeds to compare")
-    parser.add_argument("--bin_size", type=int, nargs=3, default=[10,20,10], metavar=("W","H","D"))
-    parser.add_argument("--max_boxes", type=int, default=20)
-    parser.add_argument("--train_gif", action="store_true")
-    args = parser.parse_args()
-    run_comparison(args)
+    print("📦 Training DQN Agent...")
+    agent = train_dqn_agent(num_episodes=10, generate_gif=False)
+
+    print("\n🤖 Evaluating DQN vs Heuristic:")
+    dqn_scores = []
+    heuristic_scores = []
+
+    best_dqn_score = -1
+    best_dqn_seed = None
+    best_heuristic_score = -1
+    best_heuristic_seed = None
+
+    for i in range(10):
+        test_seed = 1234 + i
+        dqn = evaluate_agent(agent, test_seed, generate_gif=False)
+        heuristic = evaluate_heuristic(test_seed, generate_gif=False)
+        dqn_scores.append(dqn)
+        heuristic_scores.append(heuristic)
+
+        if dqn > best_dqn_score:
+            best_dqn_score = dqn
+            best_dqn_seed = test_seed
+        if heuristic > best_heuristic_score:
+            best_heuristic_score = heuristic
+            best_heuristic_seed = test_seed
+
+        print(f"Test {i+1}: DQN = {dqn:.2f}%, Heuristic = {heuristic:.2f}%")
+
+    print("\n📊 DQN Avg:", np.mean(dqn_scores))
+    print("📊 Heuristic Avg:", np.mean(heuristic_scores))
+
+    print(f"\n🎞️ Generating GIF for best heuristic test (Seed {best_heuristic_seed}) with {best_heuristic_score:.2f}% volume used...")
+    evaluate_heuristic(seed=best_heuristic_seed, generate_gif=True)
+
+    print(f"\n🎞️ Generating GIF for best DQN test (Seed {best_dqn_seed}) with {best_dqn_score:.2f}% volume used...")
+    evaluate_agent(agent, env_seed=best_dqn_seed, generate_gif=True)
 
 if __name__ == "__main__":
     main()
