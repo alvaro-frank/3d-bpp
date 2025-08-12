@@ -1,82 +1,92 @@
-import argparse, os, json
-from typing import List, Tuple
-import numpy as np
 
-from utils.seed import set_global_seed
-from utils.box_gen import generate_dataset, BoxSpec
-from baselines.heuristics import lbf_blb
+import argparse
+import numpy as np
+import random
+from copy import deepcopy
 
 from environment.packing_env import PackingEnv
-from agents.dqn_agent import DQNAgent
 from train.train_dqn_agent import train_dqn_agent
+from utils.heuristic import heuristic_blb_packing
+from utils.repro import set_global_seed, make_seed_sequence
 
-def eval_dqn(agent, test_sets: List[List[BoxSpec]], bin_size: Tuple[int,int,int], max_boxes: int) -> dict:
-    scores = []
-    for ep, specs in enumerate(test_sets):
-        env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, generate_gif=False)
-        try:
-            _ = env.reset_with_boxes([(b.width,b.height,b.depth) for b in specs])
-        except AttributeError:
-            _ = env.reset(seed=ep)
-        done = False
-        while not done:
-            action = agent.get_action(_, env.action_space)
-            _, r, done, _info = env.step(action)
-        util = env.get_placed_boxes_volume() / (bin_size[0]*bin_size[1]*bin_size[2])
-        scores.append(util)
-    return {"mean_util": float(np.mean(scores)), "per_ep": scores}
+def evaluate_dqn(agent, bin_size, max_boxes, seed, gif=False, gif_name=None):
+    env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, generate_gif=gif, gif_name=(gif_name or f"dqn_{seed}.gif"))
+    obs = env.reset(seed=seed)
+    done = False
+    while not done:
+        action = agent.get_action(obs, env.action_space)
+        obs, reward, done, info = env.step(action)
+    score = env.get_terminal_reward() * 100.0
+    return score
 
-def eval_heuristic(test_sets: List[List[BoxSpec]], bin_size: Tuple[int,int,int]) -> dict:
-    scores = []
-    for specs in test_sets:
-        boxes = [(b.width,b.height,b.depth,b.id) for b in specs]
-        res = lbf_blb(bin_size[0], bin_size[1], bin_size[2], boxes, support_thresh=0.7)
-        scores.append(res["utilization"])
-    return {"mean_util": float(np.mean(scores)), "per_ep": scores}
+def evaluate_heuristic_from_boxes(bin_size, boxes, gif=False, gif_name=None):
+    # deep copy boxes so we don't mutate caller
+    boxes_copy = [deepcopy(b) for b in boxes]
+    _, bbin = heuristic_blb_packing(bin_size, boxes_copy, try_rotations=True, generate_gif=gif, gif_name=(gif_name or "heuristic.gif"))
+    used = sum(b.get_volume() for b in bbin.boxes)
+    total = bbin.width * bbin.height * bbin.depth
+    return 100.0 * used / total
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument('--seed', type=int, default=42)
-    p.add_argument('--bin', type=int, nargs=3, default=[10,20,10], metavar=('W','H','D'))
-    p.add_argument('--boxes_per_episode', type=int, default=20)
-    p.add_argument('--train_episodes', type=int, default=200)
-    p.add_argument('--test_episodes', type=int, default=50)
-    p.add_argument('--save_dir', type=str, default='runs/exp1')
-    args = p.parse_args()
-
+def run_comparison(args):
     set_global_seed(args.seed)
-    os.makedirs(args.save_dir, exist_ok=True)
 
-    train_sets = generate_dataset(args.train_episodes, args.boxes_per_episode, seed=args.seed)
-    test_sets  = generate_dataset(args.test_episodes,  args.boxes_per_episode, seed=args.seed+1)
-
+    # Train DQN
     agent = train_dqn_agent(
-        num_episodes=args.train_episodes,
-        bin_size=tuple(args.bin),
-        max_boxes=args.boxes_per_episode,
+        num_episodes=args.episodes,
+        bin_size=tuple(args.bin_size),
+        max_boxes=args.max_boxes,
         gif_name="packing_dqn_train.gif",
-        generate_gif=False
+        generate_gif=args.train_gif,
     )
 
-    dqn_res = eval_dqn(agent, test_sets, tuple(args.bin), args.boxes_per_episode)
-    heur_res = eval_heuristic(test_sets, tuple(args.bin))
+    # Create a common test set of seeds for fair comparison
+    seeds = make_seed_sequence(args.seed, args.tests)
 
-    out = {
-        "seed": args.seed,
-        "bin": args.bin,
-        "boxes_per_episode": args.boxes_per_episode,
-        "train_episodes": args.train_episodes,
-        "test_episodes": args.test_episodes,
-        "dqn": dqn_res,
-        "heuristic_lbf_blb": heur_res,
-    }
-    with open(os.path.join(args.save_dir, "compare.json"), "w") as f:
-        json.dump(out, f, indent=2)
+    dqn_scores, heuristic_scores = [], []
+    best = {"dqn":(-1,None), "heuristic":(-1,None)}  # (score, seed)
 
-    print("\n=== RESULTS ===")
-    print(f"DQN mean utilization: {dqn_res['mean_util']:.3f}")
-    print(f"Heuristic mean utilization: {heur_res['mean_util']:.3f}")
-    print(f"Saved to {os.path.join(args.save_dir, 'compare.json')}")
+    for s in seeds:
+        # Generate identical box sequence by resetting env with seed, then copy env.boxes for heuristic
+        env = PackingEnv(bin_size=tuple(args.bin_size), max_boxes=args.max_boxes)
+        env.reset(seed=int(s))
+        boxes_for_heur = env.boxes
+
+        # Evaluate DQN with same seed
+        dqn_score = evaluate_dqn(agent, tuple(args.bin_size), args.max_boxes, int(s), gif=False)
+        heur_score = evaluate_heuristic_from_boxes(tuple(args.bin_size), boxes_for_heur, gif=False)
+
+        dqn_scores.append(dqn_score)
+        heuristic_scores.append(heur_score)
+
+        if dqn_score > best["dqn"][0]:
+            best["dqn"] = (dqn_score, int(s))
+        if heur_score > best["heuristic"][0]:
+            best["heuristic"] = (heur_score, int(s))
+
+        print(f"Seed {int(s)} -> DQN: {dqn_score:.2f}% | Heuristic: {heur_score:.2f}%")
+
+    print("\nDQN Avg:", np.mean(dqn_scores))
+    print("Heuristic Avg:", np.mean(heuristic_scores))
+
+    # GIFs for best cases
+    print(f"\nGenerating GIFs...")
+    # Heuristic GIF
+    env = PackingEnv(bin_size=tuple(args.bin_size), max_boxes=args.max_boxes)
+    env.reset(seed=best["heuristic"][1])
+    evaluate_heuristic_from_boxes(tuple(args.bin_size), env.boxes, gif=True, gif_name=f"heuristic_best_{best['heuristic'][1]}.gif")
+    # DQN GIF
+    evaluate_dqn(agent, tuple(args.bin_size), args.max_boxes, best["dqn"][1], gif=True, gif_name=f"dqn_best_{best['dqn'][1]}.gif")
+
+def main():
+    parser = argparse.ArgumentParser(description="Train DQN, run heuristic, compare on identical test sets, and make GIFs.")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--episodes", type=int, default=200)
+    parser.add_argument("--tests", type=int, default=10, help="number of test seeds to compare")
+    parser.add_argument("--bin_size", type=int, nargs=3, default=[10,20,10], metavar=("W","H","D"))
+    parser.add_argument("--max_boxes", type=int, default=20)
+    parser.add_argument("--train_gif", action="store_true")
+    args = parser.parse_args()
+    run_comparison(args)
 
 if __name__ == "__main__":
     main()
