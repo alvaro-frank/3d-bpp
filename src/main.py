@@ -1,80 +1,82 @@
-from train.train_dqn_agent import train_dqn_agent
-from environment.packing_env import PackingEnv
+import argparse, os, json
+from typing import List, Tuple
 import numpy as np
-from utils.heuristic import heuristic_blb_packing
 
-def evaluate_agent(agent, env_seed=42, generate_gif=True):
-    env = PackingEnv(bin_size=(10, 20, 10), max_boxes=20, generate_gif=generate_gif)
-    state = env.reset(seed=env_seed)
-    total_reward = 0
-    done = False
-    while not done:
-        action = agent.get_action(state, env.action_space)
-        state, reward, done, _ = env.step(action)
-        total_reward += reward
+from utils.seed import set_global_seed
+from utils.box_gen import generate_dataset, BoxSpec
+from baselines.heuristics import lbf_blb
 
-    volume_used = env.get_placed_boxes_volume()
-    bin_volume = env.bin_volume
-    pct_volume_used = (volume_used / bin_volume) * 100
+from environment.packing_env import PackingEnv
+from agents.dqn_agent import DQNAgent
+from train.train_dqn_agent import train_dqn_agent
 
-    return pct_volume_used
+def eval_dqn(agent, test_sets: List[List[BoxSpec]], bin_size: Tuple[int,int,int], max_boxes: int) -> dict:
+    scores = []
+    for ep, specs in enumerate(test_sets):
+        env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, generate_gif=False)
+        try:
+            _ = env.reset_with_boxes([(b.width,b.height,b.depth) for b in specs])
+        except AttributeError:
+            _ = env.reset(seed=ep)
+        done = False
+        while not done:
+            action = agent.get_action(_, env.action_space)
+            _, r, done, _info = env.step(action)
+        util = env.get_placed_boxes_volume() / (bin_size[0]*bin_size[1]*bin_size[2])
+        scores.append(util)
+    return {"mean_util": float(np.mean(scores)), "per_ep": scores}
 
-def evaluate_heuristic(seed=42, generate_gif=False):
-    # Create environment with fixed seed to get consistent boxes
-    env = PackingEnv(bin_size=(10, 20, 10), max_boxes=20)
-    env.reset(seed=seed)
-    
-    # Run your heuristic packing algorithm
-    placed_boxes, bin = heuristic_blb_packing(bin_size=env.bin_size, boxes=env.boxes, try_rotations=True, generate_gif=generate_gif, gif_name=f"packing_heuristic.gif")
-    
-    # Calculate reward or volume used — depending on your environment's logic
-    volume_used = sum(box.get_volume() for box in placed_boxes)
-    bin_volume = env.bin_volume  # total volume of the bin
-    
-    # Compute % volume used as a proxy for reward
-    pct_volume_used = (volume_used / bin_volume) * 100
-    
-    # If you want, convert this to reward similar to env.reward()
-    # Here, just return pct_volume_used as heuristic score
-    return pct_volume_used
+def eval_heuristic(test_sets: List[List[BoxSpec]], bin_size: Tuple[int,int,int]) -> dict:
+    scores = []
+    for specs in test_sets:
+        boxes = [(b.width,b.height,b.depth,b.id) for b in specs]
+        res = lbf_blb(bin_size[0], bin_size[1], bin_size[2], boxes, support_thresh=0.7)
+        scores.append(res["utilization"])
+    return {"mean_util": float(np.mean(scores)), "per_ep": scores}
 
 def main():
-    print("📦 Training DQN Agent...")
-    agent = train_dqn_agent(num_episodes=10, generate_gif=False)
+    p = argparse.ArgumentParser()
+    p.add_argument('--seed', type=int, default=42)
+    p.add_argument('--bin', type=int, nargs=3, default=[10,20,10], metavar=('W','H','D'))
+    p.add_argument('--boxes_per_episode', type=int, default=20)
+    p.add_argument('--train_episodes', type=int, default=200)
+    p.add_argument('--test_episodes', type=int, default=50)
+    p.add_argument('--save_dir', type=str, default='runs/exp1')
+    args = p.parse_args()
 
-    print("\n🤖 Evaluating DQN vs Heuristic:")
-    dqn_scores = []
-    heuristic_scores = []
+    set_global_seed(args.seed)
+    os.makedirs(args.save_dir, exist_ok=True)
 
-    best_dqn_score = -1
-    best_dqn_seed = None
-    best_heuristic_score = -1
-    best_heuristic_seed = None
+    train_sets = generate_dataset(args.train_episodes, args.boxes_per_episode, seed=args.seed)
+    test_sets  = generate_dataset(args.test_episodes,  args.boxes_per_episode, seed=args.seed+1)
 
-    for i in range(10):
-        test_seed = 1234 + i
-        dqn = evaluate_agent(agent, test_seed, generate_gif=False)
-        heuristic = evaluate_heuristic(test_seed, generate_gif=False)
-        dqn_scores.append(dqn)
-        heuristic_scores.append(heuristic)
+    agent = train_dqn_agent(
+        num_episodes=args.train_episodes,
+        bin_size=tuple(args.bin),
+        max_boxes=args.boxes_per_episode,
+        gif_name="packing_dqn_train.gif",
+        generate_gif=False
+    )
 
-        if dqn > best_dqn_score:
-            best_dqn_score = dqn
-            best_dqn_seed = test_seed
-        if heuristic > best_heuristic_score:
-            best_heuristic_score = heuristic
-            best_heuristic_seed = test_seed
+    dqn_res = eval_dqn(agent, test_sets, tuple(args.bin), args.boxes_per_episode)
+    heur_res = eval_heuristic(test_sets, tuple(args.bin))
 
-        print(f"Test {i+1}: DQN = {dqn:.2f}%, Heuristic = {heuristic:.2f}%")
+    out = {
+        "seed": args.seed,
+        "bin": args.bin,
+        "boxes_per_episode": args.boxes_per_episode,
+        "train_episodes": args.train_episodes,
+        "test_episodes": args.test_episodes,
+        "dqn": dqn_res,
+        "heuristic_lbf_blb": heur_res,
+    }
+    with open(os.path.join(args.save_dir, "compare.json"), "w") as f:
+        json.dump(out, f, indent=2)
 
-    print("\n📊 DQN Avg:", np.mean(dqn_scores))
-    print("📊 Heuristic Avg:", np.mean(heuristic_scores))
-
-    print(f"\n🎞️ Generating GIF for best heuristic test (Seed {best_heuristic_seed}) with {best_heuristic_score:.2f}% volume used...")
-    evaluate_heuristic(seed=best_heuristic_seed, generate_gif=True)
-
-    print(f"\n🎞️ Generating GIF for best DQN test (Seed {best_dqn_seed}) with {best_dqn_score:.2f}% volume used...")
-    evaluate_agent(agent, env_seed=best_dqn_seed, generate_gif=True)
+    print("\n=== RESULTS ===")
+    print(f"DQN mean utilization: {dqn_res['mean_util']:.3f}")
+    print(f"Heuristic mean utilization: {heur_res['mean_util']:.3f}")
+    print(f"Saved to {os.path.join(args.save_dir, 'compare.json')}")
 
 if __name__ == "__main__":
     main()
