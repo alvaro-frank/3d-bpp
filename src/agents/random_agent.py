@@ -11,6 +11,6 @@ class RandomAgent:
         w, h, d = box.rotate(rotation)
         
         x = random.randint(0, max(0, self.bin_width - w))
-        y = random.randint(0, max(0, self.bin_height - h))
+        y = random.randint(0, max(0, self.bin_depth - h))
 
         return [x, y, rotation]

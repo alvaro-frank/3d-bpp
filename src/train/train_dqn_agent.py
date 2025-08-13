@@ -8,8 +8,8 @@ import shutil
 
 def train_dqn_agent(
     num_episodes=100,
-    bin_size=(10, 20, 10),
-    max_boxes=20,
+    bin_size=(10, 10, 10),
+    max_boxes=35,
     gif_name="packing_dqn.gif",
     generate_gif=False
 ):
@@ -21,7 +21,7 @@ def train_dqn_agent(
     volume_utilizations = []
 
     if generate_gif:
-        gif_dir = "gif_frames_v2"
+        gif_dir = "gif_frames"
         os.makedirs(gif_dir, exist_ok=True)
         frame_count = 0
 
@@ -32,12 +32,16 @@ def train_dqn_agent(
         done = False
 
         while not done:
-            action = agent.get_action(state, env.action_space)
+            # NEW: get mask from env
+            mask = env.valid_action_mask()
+
+            action = agent.get_action(state, env.action_space, mask=mask)
             next_state, reward, done, info = env.step(action)
 
             if generate_gif:
                 frame_path = os.path.join(gif_dir, f"frame_{frame_count:04d}.png")
-                plot_bin(env.bin.boxes, env.bin_size, save_path=frame_path, title=f"Episode {episode + 1} Step {frame_count}")
+                plot_bin(env.bin.boxes, env.bin_size, save_path=frame_path,
+                         title=f"Episode {episode + 1} Step {frame_count}")
                 frame_count += 1
 
             agent.store_transition(state, action, reward, next_state, done)
