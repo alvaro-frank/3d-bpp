@@ -13,13 +13,29 @@ def train_dqn_agent(
     gif_name="packing_dqn.gif",
     generate_gif=False
 ):
+    """
+    Train a DQN agent on the 3D Bin Packing Problem environment.
+
+    Parameters:
+    - num_episodes (int): number of training episodes
+    - bin_size (tuple): dimensions of the bin (width, height, depth)
+    - max_boxes (int): number of boxes per episode
+    - gif_name (str): output filename for training GIF (if enabled)
+    - generate_gif (bool): whether to save training progress as GIF
+
+    Returns:
+    - DQNAgent: the trained agent
+    """
+    
+    # Initialize environment and agent
     env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes)
     state = env.reset()
-    state_dim = len(state)
-    action_dim = len(env.discrete_actions)
-    agent = DQNAgent(state_dim, action_dim)
-    volume_utilizations = []
+    state_dim = len(state) # number of features in the state
+    action_dim = len(env.discrete_actions) # total number of discrete actions
+    agent = DQNAgent(state_dim, action_dim) # RL agent
+    volume_utilizations = [] # track utilization % per episode
 
+    # Optional: prepare directory for GIF frames
     if generate_gif:
         gif_dir = "gif_frames"
         os.makedirs(gif_dir, exist_ok=True)
@@ -27,14 +43,17 @@ def train_dqn_agent(
 
     for episode in range(num_episodes):
         state = env.reset()
+        
+        # Legacy epsilon decay line (if step-based schedule is disabled)
         agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
         total_reward = 0
         done = False
 
         while not done:
-            # NEW: get mask from env
+            # Compute valid action mask from environment
             mask = env.valid_action_mask()
 
+            # Select action using epsilon-greedy (with mask applied)
             action = agent.get_action(state, env.action_space, mask=mask)
             next_state, reward, done, info = env.step(action)
 
@@ -44,11 +63,15 @@ def train_dqn_agent(
                          title=f"Episode {episode + 1} Step {frame_count}")
                 frame_count += 1
 
+            # Store transition and train agent
             agent.store_transition(state, action, reward, next_state, done)
             agent.train()
+            
+            # Move to next state
             state = next_state
             total_reward += reward
 
+        # Episode ended: compute utilization metrics
         volume_used = env.get_placed_boxes_volume()
         bin_volume = env.bin_volume
         pct_volume_used = (volume_used / bin_volume) * 100
@@ -63,9 +86,23 @@ def train_dqn_agent(
     return agent
 
 def create_gif(frame_folder, gif_name="packing_dqn_train.gif", fps=2):
+    """
+    Move to visualization.py.
+    Create a GIF from saved training frames.
+
+    Parameters:
+    - frame_folder (str): folder containing saved .png frames
+    - gif_name (str): filename for the output GIF
+    - fps (int): frames per second for the GIF
+
+    Returns:
+    - None (saves a .gif file to disk)
+    """
     frames = []
     files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
+    
     for file_name in files:
         image_path = os.path.join(frame_folder, file_name)
         frames.append(imageio.imread(image_path))
+        
     imageio.mimsave(gif_name, frames, fps=fps)

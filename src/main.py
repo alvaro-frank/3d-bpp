@@ -13,8 +13,18 @@ from environment.box import Box
 # ---------- reproducible test-set utils (self-contained) ----------
 def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
     """
-    Returns a list of episodes; each episode is a list of dicts:
-    [{"w":..., "h":..., "d":...}, ...]
+    Move to testsets.py
+    Create deterministic test sets for reproducible evaluation.
+
+    Parameters:
+    - seed (int): RNG seed for reproducibility
+    - n_episodes (int): number of episodes to generate
+    - n_boxes (int): number of boxes per episode
+    - box_ranges (dict): min/max ranges for box dimensions
+
+    Returns:
+    - list of episodes, where each episode is a list of dicts:
+      [{"w": ..., "h": ..., "d": ...}, ...]
     """
     rng = np.random.default_rng(seed)
     sets = []
@@ -30,43 +40,64 @@ def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
 
 
 def save_test_sets(path: str, sets):
+    """
+    Move to testsets.py
+    Save generated test sets to disk in JSON format.
+    """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(sets))
 
-
 def load_test_sets(path: str):
+    """
+    Move to testsets.py
+    Load test sets from JSON file.
+    """
     return json.loads(Path(path).read_text())
 
 
 # ---------- evaluation helpers ----------
 def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=False, gif_name="packing_dqn_agent.gif"):
     """
-    Evaluate the trained agent on ONE episode defined by `episode_boxes`
-    (list of dicts with w/h/d). Uses action masking and epsilon=0 for fair eval.
+    Move to evaluate_dqn.py
+    Evaluate the trained DQN agent on ONE test episode.
+
+    - Forces epsilon = 0 (pure exploitation) for fair evaluation.
+    - Uses action masking to avoid invalid placements.
+    - Optionally generates a GIF of the packing process.
+
+    Parameters:
+    - agent (DQNAgent): trained agent
+    - episode_boxes (list[dict]): list of boxes with dimensions (w, h, d)
+    - env_seed (int, optional): seed for reproducibility
+    - generate_gif (bool): whether to record GIF
+    - gif_name (str): filename for output GIF
+
+    Returns:
+    - float: percentage of bin volume used
     """
     env = PackingEnv(bin_size=(10, 10, 10), max_boxes=len(episode_boxes), generate_gif=generate_gif, gif_name=gif_name)
 
-    # Ensure env.reset can accept with_boxes (you added this earlier);
-    # if your reset doesn't have with_boxes yet, add it as discussed.
+    # Reset env with predetermined boxes
     state = env.reset(seed=env_seed, with_boxes=episode_boxes)
 
-    # force greedy policy during evaluation
+    # Backup epsilon and force greedy policy
     epsilon_backup = getattr(agent, "epsilon", None)
     agent.epsilon = 0.0
 
     total_reward = 0.0
     done = False
     while not done:
-        # use action mask during eval
+        # Select action using mask
         mask = env.valid_action_mask()
         action = agent.get_action(state, env.action_space, mask=mask)
         state, reward, done, _ = env.step(action)
         total_reward += reward
 
-    # restore epsilon
+    # Restore epsilon after eval
     if epsilon_backup is not None:
         agent.epsilon = epsilon_backup
 
+    # Compute utilization percentage
     volume_used = env.get_placed_boxes_volume()
     pct_volume_used = (volume_used / env.bin_volume) * 100.0
     return pct_volume_used
@@ -74,14 +105,26 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
 
 def evaluate_heuristic_on_episode(episode_boxes, env_seed=None, generate_gif=False, gif_name="packing_heuristic.gif"):
     """
-    Evaluate the heuristic on ONE episode defined by `episode_boxes`.
-    We construct Box objects inside the heuristic call for fairness.
+    Move to evaluate_heuristic.py
+    Evaluate the heuristic baseline on ONE test episode.
+
+    - Recreates the environment to ensure fairness.
+    - Uses a bottom-left-back heuristic with optional rotations.
+    - Optionally generates a GIF of the packing process.
+
+    Parameters:
+    - episode_boxes (list[dict]): list of boxes with dimensions (w, h, d)
+    - env_seed (int, optional): seed for reproducibility
+    - generate_gif (bool): whether to record GIF
+    - gif_name (str): filename for output GIF
+
+    Returns:
+    - float: percentage of bin volume used
     """
-    # Recreate an env to get bin dimensions and exact same geometry
     env = PackingEnv(bin_size=(10, 10, 10), max_boxes=len(episode_boxes))
     env.reset(seed=env_seed, with_boxes=episode_boxes)
 
-    # heuristic expects Box objects (your previous version used env.boxes)
+    # Convert dicts -> Box objects for heuristic
     boxes_for_heur = [Box(b["w"], b["h"], b["d"], id=i) for i, b in enumerate(episode_boxes)]
 
     placed_boxes, _bin = heuristic_blb_packing(
@@ -96,14 +139,20 @@ def evaluate_heuristic_on_episode(episode_boxes, env_seed=None, generate_gif=Fal
     pct_volume_used = (volume_used / env.bin_volume) * 100.0
     return pct_volume_used
 
-
-# ---------- main ----------
 def main():
+    """
+    Main experiment script:
+    1. Train DQN agent.
+    2. Generate or load fixed test sets for reproducibility.
+    3. Evaluate agent vs heuristic on the same test sets.
+    4. Report average performance and regenerate GIFs for best runs.
+    """
+    
     # 0) Global seeding FIRST (makes everything reproducible)
     SEED = 1234
     seed_all(SEED)
 
-    # 1) Train DQN (your train function should also respect the RNG state)
+    # 1) Train DQN
     print("📦 Training DQN Agent...")
     agent = train_dqn_agent(num_episodes=100, generate_gif=False)
 
@@ -123,15 +172,15 @@ def main():
         )
         save_test_sets(str(test_path), test_sets)
 
-    # 3) Evaluate DQN vs Heuristic on the SAME episodes (seeded)
+    # 3) Evaluate DQN vs heuristic on same test episodes
     print("\n🤖 Evaluating DQN vs Heuristic:")
     dqn_scores = []
     heuristic_scores = []
-    best_dqn = (-1.0, None)        # (score, idx)
-    best_heur = (-1.0, None)       # (score, idx)
+    best_dqn = (-1.0, None) # (best score, episode idx)
+    best_heur = (-1.0, None) # (best score, episode idx)
 
     for i, episode_boxes in enumerate(test_sets):
-        env_seed = SEED + i  # per-episode reset seed (reproducible)
+        env_seed = SEED + i  # per-episode reset seed
         dqn_score = evaluate_agent_on_episode(
             agent,
             episode_boxes,
@@ -156,6 +205,7 @@ def main():
 
         print(f"Test {i+1}: DQN = {dqn_score:.2f}%, Heuristic = {heur_score:.2f}%")
 
+    # Report averages
     print("\n📊 DQN Avg:", float(np.mean(dqn_scores)))
     print("📊 Heuristic Avg:", float(np.mean(heuristic_scores)))
 
