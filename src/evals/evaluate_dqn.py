@@ -1,34 +1,51 @@
-class DQNAgentEvaluator:
-    def __init__(self, agent, env, episodes=10, render=False):
-        self.agent = agent
-        self.env = env
-        self.episodes = episodes
-        self.render = render
+from environment.packing_env import PackingEnv
 
-    def evaluate(self):
-        # Desativa exploração para avaliação
-        self.agent.epsilon = 0.0
+def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=False, gif_name="packing_dqn_agent.gif"):
+    """
+    Evaluate the trained DQN agent on ONE test episode.
 
-        total_rewards = []
+    - Forces epsilon = 0 (pure exploitation) for fair evaluation.
+    - Uses action masking to avoid invalid placements.
+    - Optionally generates a GIF of the packing process.
 
-        for ep in range(self.episodes):
-            state = self.env.reset()
-            done = False
-            episode_reward = 0
+    Parameters:
+    - agent (DQNAgent): trained agent
+    - episode_boxes (list[dict]): list of boxes with dimensions (w, h, d)
+    - env_seed (int, optional): seed for reproducibility
+    - generate_gif (bool): whether to record GIF
+    - gif_name (str): filename for output GIF
 
-            while not done:
-                action = self.agent.get_action(state, self.env.action_space)
-                next_state, reward, done, _ = self.env.step(action)
-                state = next_state
-                episode_reward += reward
+    Returns:
+    - float: percentage of bin volume used
+    """
+    env = PackingEnv(
+        bin_size=(10, 10, 10),
+        max_boxes=len(episode_boxes),
+        generate_gif=generate_gif,
+        gif_name=gif_name
+    )
 
-                if self.render:
-                    self.env.render()
+    # Reset env with predetermined boxes
+    state = env.reset(seed=env_seed, with_boxes=episode_boxes)
 
-            total_rewards.append(episode_reward)
-            print(f"🎯 Episódio {ep + 1}: Recompensa Total = {episode_reward:.2f}")
+    # Backup epsilon and force greedy policy
+    epsilon_backup = getattr(agent, "epsilon", None)
+    agent.epsilon = 0.0
 
-        avg_reward = sum(total_rewards) / self.episodes
-        print(f"\n💡 Recompensa média após {self.episodes} episódios: {avg_reward:.2f}")
+    total_reward = 0.0
+    done = False
+    while not done:
+        # Select action using mask
+        mask = env.valid_action_mask()
+        action = agent.get_action(state, env.action_space, mask=mask)
+        state, reward, done, _ = env.step(action)
+        total_reward += reward
 
-        return avg_reward
+    # Restore epsilon after eval
+    if epsilon_backup is not None:
+        agent.epsilon = epsilon_backup
+
+    # Compute utilization percentage
+    volume_used = env.get_placed_boxes_volume()
+    pct_volume_used = (volume_used / env.bin.bin_volume()) * 100.0
+    return pct_volume_used

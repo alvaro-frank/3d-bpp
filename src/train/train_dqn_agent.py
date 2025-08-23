@@ -3,7 +3,7 @@ import os
 from environment.packing_env import PackingEnv
 from agents.dqn_agent import DQNAgent
 from utils.visualization import plot_bin
-import imageio
+from utils.visualization import create_gif
 import shutil
 
 def train_dqn_agent(
@@ -73,7 +73,7 @@ def train_dqn_agent(
 
         # Episode ended: compute utilization metrics
         volume_used = env.get_placed_boxes_volume()
-        bin_volume = env.bin_volume
+        bin_volume = env.bin.bin_volume()
         pct_volume_used = (volume_used / bin_volume) * 100
         volume_utilizations.append(pct_volume_used)
 
@@ -84,25 +84,3 @@ def train_dqn_agent(
         shutil.rmtree(gif_dir)
 
     return agent
-
-def create_gif(frame_folder, gif_name="packing_dqn_train.gif", fps=2):
-    """
-    Move to visualization.py.
-    Create a GIF from saved training frames.
-
-    Parameters:
-    - frame_folder (str): folder containing saved .png frames
-    - gif_name (str): filename for the output GIF
-    - fps (int): frames per second for the GIF
-
-    Returns:
-    - None (saves a .gif file to disk)
-    """
-    frames = []
-    files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
-    
-    for file_name in files:
-        image_path = os.path.join(frame_folder, file_name)
-        frames.append(imageio.imread(image_path))
-        
-    imageio.mimsave(gif_name, frames, fps=fps)

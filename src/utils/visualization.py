@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import os
+import imageio
+import shutil
 
 def plot_bin(boxes, bin_size, save_path=None, title=""):
     """
@@ -85,3 +87,50 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
         plt.close()
     else:
         plt.show()
+
+def create_gif(frame_folder, gif_name="packing.gif", fps=2):
+    """
+    Create a GIF from saved .png frames in a folder.
+
+    Parameters:
+    - frame_folder (str): path to folder containing frames
+    - gif_name (str): name of the output GIF file
+    - fps (int): frames per second
+
+    Returns:
+    - None (saves the GIF to disk)
+    """
+    frames = []
+    files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
+    
+    for file_name in files:
+        image_path = os.path.join(frame_folder, file_name)
+        frames.append(imageio.imread(image_path))
+
+    imageio.mimsave(gif_name, frames, fps=fps)
+
+def finalize_gif(gif_dir, gif_name, fps=2):
+    """
+    Compile all saved .png frames from a folder into a single GIF file
+    and clean up the temporary frame directory.
+
+    Parameters:
+    - gif_dir (str): path to the folder containing saved frames
+    - gif_name (str): filename for the output GIF
+    - fps (int): frames per second of the output GIF
+
+    Returns:
+    - None (saves the GIF file and deletes the temporary frames)
+    """
+    if not os.path.exists(gif_dir):
+        return
+
+    frames = []
+    files = sorted([f for f in os.listdir(gif_dir) if f.endswith(".png")])
+
+    for file_name in files:
+        image_path = os.path.join(gif_dir, file_name)
+        frames.append(imageio.imread(image_path))
+
+    imageio.mimsave(gif_name, frames, fps=fps)
+    shutil.rmtree(gif_dir)

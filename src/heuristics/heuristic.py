@@ -1,6 +1,7 @@
 import os
 import imageio
 from utils.visualization import plot_bin 
+from utils.visualization import create_gif
 from environment.bin import Bin
 
 def heuristic_blb_packing(bin_size, boxes, try_rotations=False, generate_gif=False, gif_name="packing_heuristic.gif"):
@@ -74,23 +75,3 @@ def heuristic_blb_packing(bin_size, boxes, try_rotations=False, generate_gif=Fal
         shutil.rmtree(gif_dir)
 
     return placed_boxes, bin
-
-def create_gif(frame_folder, gif_name="packing_heuristic.gif", fps=2):
-    """
-    Move to visualization.py
-    Create a GIF from saved frame images in a folder.
-
-    Parameters:
-    - frame_folder (str): folder containing .png frame images
-    - gif_name (str): filename for the output GIF
-    - fps (int): frames per second for animation
-
-    Returns:
-    - None (saves a GIF file to disk)
-    """
-    frames = []
-    files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
-    for file_name in files:
-        image_path = os.path.join(frame_folder, file_name)
-        frames.append(imageio.imread(image_path))
-    imageio.mimsave(gif_name, frames, fps=fps)

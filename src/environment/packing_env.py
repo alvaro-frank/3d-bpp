@@ -9,7 +9,7 @@ import shutil
 from environment.box import Box
 from environment.bin import Bin
 from utils.action_space import generate_discrete_actions
-from utils.visualization import plot_bin
+from utils.visualization import plot_bin, finalize_gif
 
 class PackingEnv(gym.Env):
     """
@@ -154,7 +154,7 @@ class PackingEnv(gym.Env):
             # Episode ended, add terminal reward and return empty observation
             if done:
                 reward += 100.0 * self.get_terminal_reward()
-                self._finalize_gif()
+                finalize_gif(self.gif_dir, self.gif_name, fps=2)
                 obs = np.zeros(4, dtype=np.float32)
             # If not ended, continue with the next box
             else:
@@ -170,7 +170,7 @@ class PackingEnv(gym.Env):
                     done = self.current_step >= self.max_boxes
                     if done:
                         reward += 100.0 * self.get_terminal_reward()
-                        self._finalize_gif()
+                        finalize_gif(self.gif_dir, self.gif_name, fps=2)
                         obs = np.zeros(4, dtype=np.float32)
                     else:
                         self.current_box = self.boxes[self.current_step]
@@ -190,7 +190,7 @@ class PackingEnv(gym.Env):
 
         
         placed_box = self.current_box
-        total_volume = self.bin_volume
+        total_volume = self.bin.bin_volume()
 
         # 1) Bottom reward: prefer placements closer to the floor
         z_pos = placed_box.position[2]
@@ -226,7 +226,7 @@ class PackingEnv(gym.Env):
         # Episode ends: add terminal utilization bonus
         if done:
             reward += 1.0 * self.get_terminal_reward()  # utilization in [0,1]
-            self._finalize_gif()
+            finalize_gif(self.gif_dir, self.gif_name, fps=2)
             obs = np.zeros(4, dtype=np.float32)
         # Otherwise load next box and continue
         else:
@@ -247,40 +247,6 @@ class PackingEnv(gym.Env):
         for b in self.bin.boxes:
             # Each box shows its ID, position (x, y, z), and chosen rotation type
             print(f"Box {b.id} at {b.position}, rotated {b.rotation_type}")
-
-    def _finalize_gif(self):
-        """
-        Compile all saved bin frames into a single GIF file
-        and clean up the temporary frame directory.
-
-        Steps:
-        1. Check if GIF generation was enabled.
-        2. Collect all saved .png images from the frame directory (sorted by name).
-        3. Load each frame into memory.
-        4. Combine frames into an animated GIF (fps=2).
-        5. Remove the temporary frame folder to free up space.
-        """
-        if not self.generate_gif:
-            return # Skip if GIF generation was not requested
-
-        frames = []
-        
-        # Gather all saved frame images (sorted ensures correct animation order)
-        files = sorted([f for f in os.listdir(self.gif_dir) if f.endswith(".png")])
-        for file_name in files:
-            image_path = os.path.join(self.gif_dir, file_name)
-            frames.append(imageio.imread(image_path))
-
-        imageio.mimsave(self.gif_name, frames, fps=2)
-        shutil.rmtree(self.gif_dir)
-    
-    @property
-    def bin_volume(self):
-        """
-        Remove and use bin_volume from Bin class
-        """
-        w, h, d = self.bin_size
-        return w * h * d
 
     def get_placed_boxes_volume(self):
         """
@@ -338,7 +304,7 @@ class PackingEnv(gym.Env):
                 where 1.0 means the bin is completely filled.
         """
         packed_volume = sum(b.get_volume() for b in self.bin.boxes)
-        return packed_volume / self.bin_volume
+        return packed_volume / self.bin.bin_volume()
 
     def valid_action_mask(self):
         """
