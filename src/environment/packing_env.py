@@ -6,7 +6,8 @@ import imageio
 import copy
 import shutil
 
-from environment.box import Box
+from environment.box import Box as BinBox
+from gym.spaces import Box as GymBox
 from environment.bin import Bin
 from utils.action_space import generate_discrete_actions
 from utils.visualization import plot_bin, finalize_gif
@@ -17,7 +18,7 @@ class PackingEnv(gym.Env):
     It manages the bin size, the boxes to be packed, and the current state of the environment
     It provides methods to reset the environment, step through actions, and render the current state.
     """
-    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, generate_gif=False, gif_name="packing_dqn_agent.gif"):
+    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=3, generate_gif=False, gif_name="packing_dqn_agent.gif"):
         """
         Initializes the packing environment with a bin size, maximum number of boxes, and options for GIF generation.
         
@@ -29,6 +30,7 @@ class PackingEnv(gym.Env):
         """
         self.bin_size = bin_size
         self.max_boxes = max_boxes
+        self.lookahead = lookahead
         self.current_step = 0
         self.bin = None
         self.boxes = []
@@ -47,7 +49,26 @@ class PackingEnv(gym.Env):
             os.makedirs(self.gif_dir, exist_ok=True)
 
         self.discrete_actions = generate_discrete_actions(self.bin_size[0], self.bin_size[1])
-        self.action_space = gym.spaces.Discrete(len(self.discrete_actions))    
+        self.action_space = gym.spaces.Discrete(len(self.discrete_actions))
+
+        # Observation space
+        self.observation_space = GymBox(
+            low=0.0,
+            high=1.0,
+            shape=(self._obs_length(),),
+            dtype=np.float32
+        )    
+
+    def _obs_length(self):
+        """Return the length of the observation vector (for observation_space)."""
+        width, height, depth = self.bin_size
+
+        heightmap_len = width * depth
+        upcoming_len = self.lookahead * 3
+        stats_len = 4
+
+        return heightmap_len + upcoming_len + stats_len
+
 
     def reset(self, seed=None, with_boxes=None):
         """
@@ -68,7 +89,7 @@ class PackingEnv(gym.Env):
         self.current_step = 0
 
         if with_boxes is not None: # if boxes are provided, use them
-            self.boxes = [Box(b["w"], b["h"], b["d"], id=i) for i, b in enumerate(with_boxes)]
+            self.boxes = [BinBox(b["w"], b["h"], b["d"], id=i) for i, b in enumerate(with_boxes)]
         else: # otherwise generate random boxes
             self.boxes = self._generate_boxes(self.max_boxes)
 
@@ -96,7 +117,7 @@ class PackingEnv(gym.Env):
         - list: a list of Box objects with random dimensions
         """
         return [
-            Box(
+            BinBox(
                 width=random.randint(1, 5),
                 height=random.randint(1, 5),
                 depth=random.randint(1, 5),
@@ -107,19 +128,53 @@ class PackingEnv(gym.Env):
 
     def _get_obs(self):
         """
-        Gets the current observation of the environment.
-        This includes the dimensions of the current box and the number of boxes remaining to be placed.
-        
+        Builds the state representation:
+        - Heightmap: flattened 2D array of current max heights (width × depth).
+        - Upcoming box sizes: dimensions of the current box (optionally with lookahead).
+        - Global stats: remaining boxes, utilization, compactness, max height.
+
         Returns:
-        - np.ndarray: an array containing the current box dimensions and remaining boxes count
+        - np.ndarray: state vector for the agent.
         """
-        # Observação: dimensões da caixa atual + número de caixas restantes
-        return np.array([
-            self.current_box.width,
-            self.current_box.height,
-            self.current_box.depth,
-            self.max_boxes - self.current_step
+        # 1) Heightmap encoding (width × depth)
+        heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
+        for b in self.bin.boxes:
+            x, y, z = b.position
+            bw, bh, bd = b.rotate(b.rotation_type)
+            for dx in range(bw):
+                for dz in range(bd):
+                    heightmap[x + dx, z + dz] = max(
+                        heightmap[x + dx, z + dz], y + bh
+                    )
+        heightmap = heightmap.flatten() / self.bin.height  # normalize 0..1
+
+        # 2) Upcoming box sizes
+        upcoming = []
+        if self.current_step < self.max_boxes:
+          for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
+              b = self.boxes[i]
+              upcoming.extend([b.width, b.height, b.depth])
+        # Pad if fewer than lookahead boxes left
+        while len(upcoming) < self.lookahead * 3:
+            upcoming.extend([0, 0, 0])
+        upcoming = np.array(upcoming, dtype=np.float32)
+
+        # 3) Global stats
+        stats = np.array([
+            (self.max_boxes - self.current_step) / self.max_boxes,   # remaining ratio
+            self.get_placed_boxes_volume() / self.bin.bin_volume(),  # utilization
+            self.calculate_compactness(),                           # compactness
+            self.current_max_height() / self.bin.height             # normalized max height
         ], dtype=np.float32)
+
+        obs = np.concatenate([heightmap, upcoming, stats])
+
+        # Safety check: length must always match observation_space
+        assert obs.shape[0] == self._obs_length(), \
+            f"Obs length mismatch: got {obs.shape[0]}, expected {self._obs_length()}"
+
+        # Final state
+        return obs
 
     def step(self, action_idx):
         """
@@ -155,7 +210,7 @@ class PackingEnv(gym.Env):
             if done:
                 reward += 100.0 * self.get_terminal_reward()
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
-                obs = np.zeros(4, dtype=np.float32)
+                obs = np.zeros(self._obs_length(), dtype=np.float32)
             # If not ended, continue with the next box
             else:
                 self.current_box = self.boxes[self.current_step] # get the next box
@@ -171,7 +226,7 @@ class PackingEnv(gym.Env):
                     if done:
                         reward += 100.0 * self.get_terminal_reward()
                         finalize_gif(self.gif_dir, self.gif_name, fps=2)
-                        obs = np.zeros(4, dtype=np.float32)
+                        obs = np.zeros(self._obs_length(), dtype=np.float32)
                     else:
                         self.current_box = self.boxes[self.current_step]
                         obs = self._get_obs()
@@ -227,7 +282,7 @@ class PackingEnv(gym.Env):
         if done:
             reward += 1.0 * self.get_terminal_reward()  # utilization in [0,1]
             finalize_gif(self.gif_dir, self.gif_name, fps=2)
-            obs = np.zeros(4, dtype=np.float32)
+            obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
         else:
             self.current_box = self.boxes[self.current_step]
@@ -321,25 +376,44 @@ class PackingEnv(gym.Env):
         
         # Initialize all actions as invalid
         mask = np.zeros(self.action_space.n, dtype=bool)
-        
-        # If there's no current box, no actions are possible
+
         if self.current_box is None:
             return mask
 
-        # Check each possible action
         for idx, (x, y, rot) in enumerate(self.discrete_actions):
-            # 1) Quick bounds check using rotated dimensions
+            # 1) Get rotated dimensions
             w, h, d = self.current_box.rotate(rot)
-            if (x + w > self.bin.width) or (y + h > self.bin.height):
-                continue # skip if it doesn’t fit within bin’s X/Y bounds
 
-            # 2) Test placement on a cloned bin/box (so the real state isn’t touched)
-            bin_clone = copy.deepcopy(self.bin)
-            box_clone = copy.deepcopy(self.current_box)
-            
-            # If placement succeeds, mark this action as valid
-            if bin_clone.place_box(box_clone, (x, y), rot):
-                mask[idx] = True
+            # 2) Quick bounds check (X, Y, Z)
+            if (x + w > self.bin.width) or (y + h > self.bin.height):
+                continue
+
+            # Compute placement height (z) for this (x,y)
+            z = self.bin.find_lowest_z((w, h, d), x, y)
+
+            # Depth (Z-axis) bound check
+            if z + d > self.bin.depth:
+                continue
+
+            # 3) Collision check against existing boxes
+            collision = False
+            for b in self.bin.boxes:
+                bx, by, bz = b.position
+                bw, bh, bd = b.rotate(b.rotation_type)
+
+                overlap_x = not (x + w <= bx or x >= bx + bw)
+                overlap_y = not (y + h <= by or y >= by + bh)
+                overlap_z = not (z + d <= bz or z >= bz + bd)
+
+                if overlap_x and overlap_y and overlap_z:
+                    collision = True
+                    break
+
+            if collision:
+                continue
+
+            # If all checks passed, mark action as valid
+            mask[idx] = True
 
         return mask
 

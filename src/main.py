@@ -15,13 +15,12 @@ from environment.box import Box
 
 def main():
     """
-    Main experiment script:
+    Main script:
     1. Train DQN agent.
     2. Generate or load fixed test sets for reproducibility.
     3. Evaluate agent vs heuristic on the same test sets.
     4. Report average performance and regenerate GIFs for best runs.
     """
-    
     # 0) Global seeding FIRST (makes everything reproducible)
     SEED = 1234
     N_EPISODES = 100
@@ -86,7 +85,7 @@ def main():
     print("\n📊 DQN Avg:", float(np.mean(dqn_scores)))
     print("📊 Heuristic Avg:", float(np.mean(heuristic_scores)))
 
-    # 4) Regenerate GIFs only for the BEST episodes (so you keep output tidy)
+    # 4) Regenerate GIFs only for the BEST episodes
     best_heur_score, best_heur_idx = best_heur
     best_dqn_score, best_dqn_idx = best_dqn
 
@@ -109,6 +108,27 @@ def main():
         gif_name=f"runs/agent_best_ep{best_dqn_idx}.gif",
     )
 
+    # 5) Extra: side-by-side comparison on the SAME episode
+    COMPARE_IDX = 0  # or pick any fixed index you want to visualize
+    print(f"\n🆚 Generating comparison GIFs for episode {COMPARE_IDX} "
+          f"(both agent and heuristic on identical boxes)...")
+
+    print(test_sets[COMPARE_IDX])
+
+    evaluate_heuristic_on_episode(
+        test_sets[COMPARE_IDX],
+        env_seed=SEED + COMPARE_IDX,
+        generate_gif=True,
+        gif_name=f"runs/heuristic_compare_ep{COMPARE_IDX}.gif",
+    )
+
+    evaluate_agent_on_episode(
+        agent,
+        test_sets[COMPARE_IDX],
+        env_seed=SEED + COMPARE_IDX,
+        generate_gif=True,
+        gif_name=f"runs/agent_compare_ep{COMPARE_IDX}.gif",
+    )
 
 if __name__ == "__main__":
     main()
