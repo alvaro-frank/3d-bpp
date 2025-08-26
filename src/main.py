@@ -23,7 +23,7 @@ def main():
     """
     # 0) Global seeding FIRST (makes everything reproducible)
     SEED = 1234
-    N_EPISODES = 100
+    N_EPISODES = 10
     N_TESTS = 10
     N_BOXES = 35
     seed_all(SEED)

@@ -5,6 +5,7 @@ import os
 import imageio
 import copy
 import shutil
+import logging
 
 from environment.box import Box as BinBox
 from gym.spaces import Box as GymBox
@@ -60,7 +61,9 @@ class PackingEnv(gym.Env):
         )    
 
     def _obs_length(self):
-        """Return the length of the observation vector (for observation_space)."""
+        """
+        Return the length of the observation vector (for observation_space).
+        """
         width, height, depth = self.bin_size
 
         heightmap_len = width * depth
@@ -176,7 +179,7 @@ class PackingEnv(gym.Env):
         # Final state
         return obs
 
-    def step(self, action_idx):
+    def step(self, action_idx, log_file=None):
         """
         Steps through the environment with a given action.
         Attempts to place the current box at the specified position and rotation.
@@ -193,6 +196,13 @@ class PackingEnv(gym.Env):
         - done (bool): whether the episode has ended
         - info (dict): additional information about the step, such as success or failure of placement
         """
+
+        def log(msg: str):
+          if log_file:
+              with open(log_file, "a") as f:
+                  f.write(msg + "\n")
+
+        log(f"Step {self.current_step}")
         x, y, rot = self.discrete_actions[action_idx] # get position and rotation from action index
 
         success = self.bin.place_box(self.current_box, (x, y), rot) # check if placement is valid
@@ -201,6 +211,7 @@ class PackingEnv(gym.Env):
         if not success:
             # Small penalty, skip this box, continue
             reward = -0.1
+            log(f"Box misplaced = {reward}")
             info = {"success": False, "failed_placement": True}
 
             self.current_step += 1
@@ -208,7 +219,8 @@ class PackingEnv(gym.Env):
 
             # Episode ended, add terminal reward and return empty observation
             if done:
-                reward += 100.0 * self.get_terminal_reward()
+                reward += 1.0 * self.get_terminal_reward()
+                log(f"Episode ended = {reward}")
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
                 obs = np.zeros(self._obs_length(), dtype=np.float32)
             # If not ended, continue with the next box
@@ -224,7 +236,8 @@ class PackingEnv(gym.Env):
                     self.current_step += 1
                     done = self.current_step >= self.max_boxes
                     if done:
-                        reward += 100.0 * self.get_terminal_reward()
+                        reward += 1.0 * self.get_terminal_reward()
+                        log(f"Episode ended = {reward}")
                         finalize_gif(self.gif_dir, self.gif_name, fps=2)
                         obs = np.zeros(self._obs_length(), dtype=np.float32)
                     else:
@@ -242,35 +255,40 @@ class PackingEnv(gym.Env):
             plot_bin(self.bin.boxes, self.bin_size, save_path=frame_path,
                      title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
             self.frame_count += 1
-
-        
+  
         placed_box = self.current_box
         total_volume = self.bin.bin_volume()
 
         # 1) Bottom reward: prefer placements closer to the floor
         z_pos = placed_box.position[2]
         r_bottom = (self.bin.depth - z_pos) / self.bin.depth
+        log(f"Bottom Reward = {r_bottom}")
 
         # 2) Volume reward: incremental volume placed since last step
         used_volume = self.get_placed_boxes_volume()
         delta_vol = used_volume - self.prev_used_volume
         self.prev_used_volume = used_volume
         r_vol = delta_vol / total_volume
+        log(f"Volume Reward = {r_vol}")
         
         # 3) Compactness reward: how tightly boxes fit together
         r_compact = self.calculate_compactness()
+        log(f"Compactness Reward = {r_compact}")
 
         # 4) Height regularizer: penalize increases in max stack height
         new_max_h = self.current_max_height()
         delta_h = new_max_h - self.prev_max_height
         self.prev_max_height = new_max_h
         r_h = -0.1 * (delta_h / self.bin.height)
+        log(f"Height Penalty = {r_h}")
 
         # 5) Small step cost to discourage long episodes
         r_step = -1e-3
+        log(f"Time Penalty = {r_step}")
 
         # Final reward (weighted combination of all components)
         reward = 0.3 * r_vol + 0.1 * r_bottom + 0.05 * r_compact + r_h + r_step
+        log(f"Step {self.current_step} final Reward =  {reward}")
         info = {"success": True}
 
         # Move to the next box
@@ -280,7 +298,8 @@ class PackingEnv(gym.Env):
 
         # Episode ends: add terminal utilization bonus
         if done:
-            reward += 1.0 * self.get_terminal_reward()  # utilization in [0,1]
+            reward += 1.0 * self.get_terminal_reward()
+            log(f"Episode ended = {reward}")
             finalize_gif(self.gif_dir, self.gif_name, fps=2)
             obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
@@ -347,6 +366,7 @@ class PackingEnv(gym.Env):
         if bounding_volume == 0:
             return 0.0  # Avoid division by zero
 
+        print()
         return packed_volume / bounding_volume
 
     def get_terminal_reward(self):

@@ -1,0 +1,2081 @@
+==== DQN Training Log ====
+
+==== Episode 1 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.016
+Compactness Reward = 1.0
+Height Penalty = -0.06
+Time Penalty = -0.001
+Step 0 final Reward =  0.0938
+Step 1
+Bottom Reward = 0.9
+Volume Reward = 0.018
+Compactness Reward = 0.5666666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.12273333333333335
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.01
+Compactness Reward = 0.32592592592592595
+Height Penalty = -0.04000000000000001
+Time Penalty = -0.001
+Step 2 final Reward =  0.0782962962962963
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.018
+Compactness Reward = 0.20666666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.11473333333333334
+Step 4
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.22
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.11120000000000001
+Step 5
+Bottom Reward = 0.9
+Volume Reward = 0.008
+Compactness Reward = 0.148
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.09880000000000001
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.006
+Compactness Reward = 0.16
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.10880000000000001
+Step 7
+Bottom Reward = 0.8
+Volume Reward = 0.015
+Compactness Reward = 0.19
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.09300000000000003
+Step 8
+Bottom Reward = 1.0
+Volume Reward = 0.012
+Compactness Reward = 0.214
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.11330000000000001
+Step 9
+Bottom Reward = 0.5
+Volume Reward = 0.015
+Compactness Reward = 0.16944444444444445
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.06197222222222222
+Step 10
+Bottom Reward = 0.6
+Volume Reward = 0.008
+Compactness Reward = 0.18055555555555555
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.07042777777777777
+Step 11
+Bottom Reward = 0.4
+Volume Reward = 0.032
+Compactness Reward = 0.135
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.05535
+Step 12
+Bottom Reward = 1.0
+Volume Reward = 0.03
+Compactness Reward = 0.14545454545454545
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.11527272727272728
+Step 13
+Bottom Reward = 0.8
+Volume Reward = 0.04
+Compactness Reward = 0.17575757575757575
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.0997878787878788
+Step 14
+Bottom Reward = 0.2
+Volume Reward = 0.02
+Compactness Reward = 0.19090909090909092
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.034545454545454546
+Step 15
+Bottom Reward = 0.2
+Volume Reward = 0.009
+Compactness Reward = 0.1797520661157025
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.030687603305785127
+Step 16
+Bottom Reward = 0.2
+Volume Reward = 0.04
+Compactness Reward = 0.1900252525252525
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.04050126262626263
+Step 17
+Box misplaced = -0.1
+Step 18
+Bottom Reward = 0.2
+Volume Reward = 0.004
+Compactness Reward = 0.19255050505050506
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.029827525252525258
+Step 19
+Bottom Reward = 0.3
+Volume Reward = 0.02
+Compactness Reward = 0.1736111111111111
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.043680555555555556
+Step 20
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.18162393162393162
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.11258119658119659
+Step 21
+Bottom Reward = 1.0
+Volume Reward = 0.002
+Compactness Reward = 0.18269230769230768
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.10873461538461539
+Step 22
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.18482905982905984
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.109441452991453
+Step 23
+Bottom Reward = 0.1
+Volume Reward = 0.016
+Compactness Reward = 0.17850098619329388
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.022725049309664694
+Step 24
+Bottom Reward = 0.8
+Volume Reward = 0.024
+Compactness Reward = 0.1903353057199211
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.09571676528599607
+Step 25
+Bottom Reward = 0.6
+Volume Reward = 0.045
+Compactness Reward = 0.21252465483234714
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.08312623274161735
+Step 26
+Box misplaced = -0.1
+Step 27
+Bottom Reward = 1.0
+Volume Reward = 0.01
+Compactness Reward = 0.1863905325443787
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 27 final Reward =  0.11131952662721895
+Step 28
+Box misplaced = -0.1
+Step 30
+Bottom Reward = 0.5
+Volume Reward = 0.02
+Compactness Reward = 0.194843617920541
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.06474218089602705
+Step 31
+Bottom Reward = 0.4
+Volume Reward = 0.018
+Compactness Reward = 0.20245139475908708
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 31 final Reward =  0.054522569737954364
+Step 32
+Box misplaced = -0.1
+Step 34
+Box misplaced = -0.1
+Episode ended = 0.379
+==== Episode 1 END ====
+Total reward: 2.06
+Boxes placed: 28/35
+Utilization: 47.90%
+
+==== Episode 2 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.03
+Compactness Reward = 1.0
+Height Penalty = -0.06
+Time Penalty = -0.001
+Step 0 final Reward =  0.098
+Step 1
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.5625
+Height Penalty = -0.03
+Time Penalty = -0.001
+Step 1 final Reward =  0.10162500000000002
+Step 2
+Bottom Reward = 0.7
+Volume Reward = 0.05
+Compactness Reward = 0.3958333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.10379166666666666
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.045
+Compactness Reward = 0.4666666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.13583333333333333
+Step 4
+Bottom Reward = 0.5
+Volume Reward = 0.036
+Compactness Reward = 0.3142857142857143
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.07551428571428571
+Step 5
+Bottom Reward = 0.2
+Volume Reward = 0.025
+Compactness Reward = 0.22087912087912087
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.03754395604395605
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.025
+Compactness Reward = 0.17560217560217561
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.11528010878010879
+Step 7
+Bottom Reward = 0.5
+Volume Reward = 0.018
+Compactness Reward = 0.1895881895881896
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.06387940947940948
+Step 8
+Bottom Reward = 0.1
+Volume Reward = 0.008
+Compactness Reward = 0.1958041958041958
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.02119020979020979
+Step 9
+Bottom Reward = 1.0
+Volume Reward = 0.002
+Compactness Reward = 0.19735819735819735
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.10946790986790987
+Step 10
+Bottom Reward = 0.2
+Volume Reward = 0.03
+Compactness Reward = 0.22066822066822067
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 10 final Reward =  0.02903341103341104
+Step 11
+Bottom Reward = 0.5
+Volume Reward = 0.06
+Compactness Reward = 0.24055944055944056
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.07902797202797203
+Step 12
+Bottom Reward = 0.1
+Volume Reward = 0.009
+Compactness Reward = 0.24685314685314685
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.024042657342657342
+Step 13
+Bottom Reward = 0.5
+Volume Reward = 0.04
+Compactness Reward = 0.2748251748251748
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.07474125874125874
+Step 14
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.26153846153846155
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.11657692307692309
+Step 15
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.27115384615384613
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.11705769230769232
+Step 16
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.21844181459566075
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.11592209072978304
+Step 17
+Bottom Reward = 0.5
+Volume Reward = 0.032
+Compactness Reward = 0.23422090729783038
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.07031104536489152
+Step 18
+Box misplaced = -0.1
+Step 19
+Bottom Reward = 0.1
+Volume Reward = 0.01
+Compactness Reward = 0.22206959706959706
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.023103479853479852
+Step 20
+Bottom Reward = 0.5
+Volume Reward = 0.02
+Compactness Reward = 0.23122710622710624
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.06656135531135532
+Step 21
+Box misplaced = -0.1
+Step 23
+Box misplaced = -0.1
+Step 24
+Bottom Reward = 0.5
+Volume Reward = 0.012
+Compactness Reward = 0.2367216117216117
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.06443608058608058
+Step 25
+Bottom Reward = 0.1
+Volume Reward = 0.012
+Compactness Reward = 0.24221611721611722
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.02471080586080586
+Step 26
+Box misplaced = -0.1
+Step 27
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.24496336996336995
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 27 final Reward =  0.0230481684981685
+Step 28
+Box misplaced = -0.1
+Step 30
+Bottom Reward = 0.5
+Volume Reward = 0.004
+Compactness Reward = 0.2467948717948718
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.0625397435897436
+Step 31
+Box misplaced = -0.1
+Step 33
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.25045787545787546
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.11392289377289377
+Step 34
+Box misplaced = -0.1
+Episode ended = 0.44700000000000006
+==== Episode 2 END ====
+Total reward: 1.41
+Boxes placed: 25/35
+Utilization: 54.70%
+
+==== Episode 3 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.04
+Compactness Reward = 1.0
+Height Penalty = -0.1
+Time Penalty = -0.001
+Step 0 final Reward =  0.061
+Step 1
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.5
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.13
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.21333333333333335
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.11086666666666668
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.17142857142857143
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.10997142857142858
+Step 4
+Bottom Reward = 0.8
+Volume Reward = 0.032
+Compactness Reward = 0.24761904761904763
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.1009809523809524
+Step 5
+Bottom Reward = 0.6
+Volume Reward = 0.045
+Compactness Reward = 0.2534013605442177
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.08517006802721089
+Step 6
+Bottom Reward = 0.6
+Volume Reward = 0.1
+Compactness Reward = 0.29927884615384615
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.1039639423076923
+Step 7
+Bottom Reward = 0.5
+Volume Reward = 0.003
+Compactness Reward = 0.2692307692307692
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.06336153846153847
+Step 8
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.2905982905982906
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.11952991452991454
+Step 9
+Bottom Reward = 0.4
+Volume Reward = 0.032
+Compactness Reward = 0.25982905982905985
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.061591452991452994
+Step 10
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.27692307692307694
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.11884615384615385
+Step 11
+Bottom Reward = 0.3
+Volume Reward = 0.012
+Compactness Reward = 0.26107226107226106
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.045653613053613054
+Step 12
+Box misplaced = -0.1
+Step 13
+Bottom Reward = 0.2
+Volume Reward = 0.024
+Compactness Reward = 0.2564102564102564
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.03902051282051282
+Step 14
+Bottom Reward = 0.3
+Volume Reward = 0.036
+Compactness Reward = 0.25384615384615383
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.052492307692307685
+Step 15
+Bottom Reward = 0.2
+Volume Reward = 0.008
+Compactness Reward = 0.258974358974359
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.03434871794871795
+Step 16
+Bottom Reward = 0.2
+Volume Reward = 0.016
+Compactness Reward = 0.2692307692307692
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.037261538461538464
+Step 17
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.27307692307692305
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.024453846153846152
+Step 18
+Bottom Reward = 0.5
+Volume Reward = 0.03
+Compactness Reward = 0.26573426573426573
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.0712867132867133
+Step 19
+Bottom Reward = 0.8
+Volume Reward = 0.016
+Compactness Reward = 0.27505827505827507
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.09755291375291376
+Step 20
+Box misplaced = -0.1
+Step 22
+Bottom Reward = 0.6
+Volume Reward = 0.02
+Compactness Reward = 0.2867132867132867
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.07933566433566434
+Step 23
+Bottom Reward = 0.4
+Volume Reward = 0.012
+Compactness Reward = 0.2937062937062937
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.05728531468531469
+Step 24
+Bottom Reward = 0.5
+Volume Reward = 0.005
+Compactness Reward = 0.2754329004329004
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.06427164502164502
+Step 25
+Box misplaced = -0.1
+Step 26
+Bottom Reward = 1.0
+Volume Reward = 0.016
+Compactness Reward = 0.2840909090909091
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 26 final Reward =  0.11800454545454546
+Step 27
+Box misplaced = -0.1
+Step 29
+Box misplaced = -0.1
+Step 31
+Bottom Reward = 0.1
+Volume Reward = 0.005
+Compactness Reward = 0.28679653679653677
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 31 final Reward =  0.024839826839826842
+Step 32
+Bottom Reward = 0.6
+Volume Reward = 0.015
+Compactness Reward = 0.2949134199134199
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 32 final Reward =  0.078245670995671
+Step 33
+Box misplaced = -0.1
+Episode ended = 0.34500000000000003
+==== Episode 3 END ====
+Total reward: 1.43
+Boxes placed: 25/35
+Utilization: 54.50%
+
+==== Episode 4 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.036
+Compactness Reward = 1.0
+Height Penalty = -0.08000000000000002
+Time Penalty = -0.001
+Step 0 final Reward =  0.07979999999999998
+Step 1
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.3333333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.11686666666666667
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.25462962962962965
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.11623148148148149
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.27314814814814814
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 3 final Reward =  0.10385740740740743
+Step 4
+Bottom Reward = 0.7
+Volume Reward = 0.1
+Compactness Reward = 0.3680555555555556
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.11740277777777777
+Step 5
+Bottom Reward = 0.3
+Volume Reward = 0.036
+Compactness Reward = 0.3611111111111111
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.05785555555555555
+Step 6
+Bottom Reward = 0.7
+Volume Reward = 0.1
+Compactness Reward = 0.4097222222222222
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 6 final Reward =  0.10948611111111109
+Step 7
+Box misplaced = -0.1
+Step 9
+Bottom Reward = 1.0
+Volume Reward = 0.032
+Compactness Reward = 0.36333333333333334
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.12676666666666667
+Step 10
+Bottom Reward = 0.3
+Volume Reward = 0.001
+Compactness Reward = 0.36444444444444446
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.04752222222222222
+Step 11
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.343
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.12065000000000001
+Step 12
+Bottom Reward = 0.3
+Volume Reward = 0.03
+Compactness Reward = 0.31083333333333335
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.05354166666666667
+Step 13
+Bottom Reward = 0.3
+Volume Reward = 0.024
+Compactness Reward = 0.3308333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.05274166666666666
+Step 14
+Bottom Reward = 0.6
+Volume Reward = 0.03
+Compactness Reward = 0.35583333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.08579166666666665
+Step 15
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.36083333333333334
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.028841666666666668
+Step 16
+Bottom Reward = 0.3
+Volume Reward = 0.012
+Compactness Reward = 0.37083333333333335
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.05114166666666667
+Step 17
+Box misplaced = -0.1
+Step 18
+Bottom Reward = 0.2
+Volume Reward = 0.04
+Compactness Reward = 0.3368055555555556
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.04784027777777778
+Step 19
+Bottom Reward = 0.7
+Volume Reward = 0.015
+Compactness Reward = 0.3472222222222222
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.09086111111111111
+Step 20
+Box misplaced = -0.1
+Step 21
+Bottom Reward = 0.2
+Volume Reward = 0.03
+Compactness Reward = 0.3680555555555556
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.04640277777777778
+Step 22
+Box misplaced = -0.1
+Step 23
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.33964646464646464
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.11838232323232324
+Step 24
+Bottom Reward = 1.0
+Volume Reward = 0.005
+Compactness Reward = 0.3428030303030303
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.11764015151515152
+Step 25
+Bottom Reward = 0.2
+Volume Reward = 0.02
+Compactness Reward = 0.3280885780885781
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.04140442890442891
+Step 26
+Bottom Reward = 0.6
+Volume Reward = 0.02
+Compactness Reward = 0.29120879120879123
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 26 final Reward =  0.07956043956043957
+Step 27
+Box misplaced = -0.1
+Step 28
+Bottom Reward = 0.7
+Volume Reward = 0.015
+Compactness Reward = 0.2987012987012987
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.08843506493506494
+Step 29
+Box misplaced = -0.1
+Step 31
+Box misplaced = -0.1
+Step 33
+Box misplaced = -0.1
+Episode ended = 0.39799999999999996
+==== Episode 4 END ====
+Total reward: 1.30
+Boxes placed: 23/35
+Utilization: 59.80%
+
+==== Episode 5 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.005
+Compactness Reward = 1.0
+Height Penalty = -0.1
+Time Penalty = -0.001
+Step 0 final Reward =  0.05050000000000002
+Step 1
+Bottom Reward = 1.0
+Volume Reward = 0.006
+Compactness Reward = 0.05238095238095238
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.10341904761904762
+Step 2
+Bottom Reward = 0.9
+Volume Reward = 0.02
+Compactness Reward = 0.12301587301587301
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.10115079365079367
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.012
+Compactness Reward = 0.09953703703703703
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.10757685185185187
+Step 4
+Bottom Reward = 0.8
+Volume Reward = 0.01
+Compactness Reward = 0.12268518518518519
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.08813425925925927
+Step 5
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.12878787878787878
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.10993939393939395
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.018
+Compactness Reward = 0.14930555555555555
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.11186527777777779
+Step 7
+Bottom Reward = 1.0
+Volume Reward = 0.024
+Compactness Reward = 0.1909722222222222
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.11574861111111112
+Step 8
+Bottom Reward = 0.7
+Volume Reward = 0.04
+Compactness Reward = 0.2604166666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.09402083333333333
+Step 9
+Bottom Reward = 0.3
+Volume Reward = 0.01
+Compactness Reward = 0.1646090534979424
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.040230452674897124
+Step 10
+Bottom Reward = 0.8
+Volume Reward = 0.012
+Compactness Reward = 0.17695473251028807
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.09144773662551442
+Step 11
+Bottom Reward = 0.3
+Volume Reward = 0.002
+Compactness Reward = 0.17901234567901234
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.038550617283950615
+Step 12
+Bottom Reward = 0.5
+Volume Reward = 0.03
+Compactness Reward = 0.20987654320987653
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.06849382716049383
+Step 13
+Bottom Reward = 0.7
+Volume Reward = 0.08
+Compactness Reward = 0.26296296296296295
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.10614814814814814
+Step 14
+Bottom Reward = 0.5
+Volume Reward = 0.045
+Compactness Reward = 0.30462962962962964
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.07773148148148148
+Step 15
+Box misplaced = -0.1
+Step 16
+Bottom Reward = 0.9
+Volume Reward = 0.009
+Compactness Reward = 0.31296296296296294
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.10734814814814815
+Step 17
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.32037037037037036
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.11741851851851852
+Step 18
+Bottom Reward = 0.2
+Volume Reward = 0.012
+Compactness Reward = 0.3314814814814815
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.039174074074074076
+Step 19
+Bottom Reward = 0.2
+Volume Reward = 0.032
+Compactness Reward = 0.2708333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.04214166666666667
+Step 20
+Bottom Reward = 0.6
+Volume Reward = 0.006
+Compactness Reward = 0.275
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.07455
+Step 21
+Bottom Reward = 0.2
+Volume Reward = 0.024
+Compactness Reward = 0.2916666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.04078333333333334
+Step 22
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.2777777777777778
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.1188888888888889
+Step 23
+Bottom Reward = 0.2
+Volume Reward = 0.002
+Compactness Reward = 0.27904040404040403
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.03355202020202021
+Step 24
+Bottom Reward = 0.5
+Volume Reward = 0.02
+Compactness Reward = 0.2916666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.06958333333333333
+Step 25
+Bottom Reward = 0.2
+Volume Reward = 0.002
+Compactness Reward = 0.29292929292929293
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.03424646464646465
+Step 26
+Box misplaced = -0.1
+Step 28
+Bottom Reward = 0.1
+Volume Reward = 0.004
+Compactness Reward = 0.29545454545454547
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.024972727272727275
+Step 29
+Bottom Reward = 0.2
+Volume Reward = 0.012
+Compactness Reward = 0.30303030303030304
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 29 final Reward =  0.037751515151515154
+Step 30
+Box misplaced = -0.1
+Step 31
+Bottom Reward = 0.2
+Volume Reward = 0.004
+Compactness Reward = 0.3055555555555556
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 31 final Reward =  0.03547777777777778
+Step 32
+Bottom Reward = 0.3
+Volume Reward = 0.018
+Compactness Reward = 0.31691919191919193
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 32 final Reward =  0.050245959595959594
+Step 33
+Box misplaced = -0.1
+Step 34
+Bottom Reward = 0.2
+Volume Reward = 0.005
+Compactness Reward = 0.29545454545454547
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 34 final Reward =  0.035272727272727275
+Episode ended = 0.5422727272727272
+==== Episode 5 END ====
+Total reward: 2.17
+Boxes placed: 30/35
+Utilization: 50.70%
+
+==== Episode 6 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 1.0
+Height Penalty = -0.04000000000000001
+Time Penalty = -0.001
+Step 0 final Reward =  0.11500000000000002
+Step 1
+Bottom Reward = 0.5
+Volume Reward = 0.008
+Compactness Reward = 0.8
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.09140000000000001
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.04
+Compactness Reward = 0.3469387755102041
+Height Penalty = -0.03
+Time Penalty = -0.001
+Step 2 final Reward =  0.0983469387755102
+Step 3
+Bottom Reward = 0.6
+Volume Reward = 0.016
+Compactness Reward = 0.375
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.08255
+Step 4
+Bottom Reward = 1.0
+Volume Reward = 0.01
+Compactness Reward = 0.24479166666666666
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.11423958333333334
+Step 5
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.17708333333333334
+Height Penalty = -0.020000000000000004
+Time Penalty = -0.001
+Step 5 final Reward =  0.09025416666666666
+Step 6
+Bottom Reward = 0.1
+Volume Reward = 0.025
+Compactness Reward = 0.1763888888888889
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.025319444444444447
+Step 7
+Bottom Reward = 0.5
+Volume Reward = 0.012
+Compactness Reward = 0.19305555555555556
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.06225277777777778
+Step 8
+Bottom Reward = 1.0
+Volume Reward = 0.025
+Compactness Reward = 0.22777777777777777
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.1178888888888889
+Step 9
+Bottom Reward = 0.5
+Volume Reward = 0.08
+Compactness Reward = 0.24646464646464647
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.08532323232323233
+Step 10
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.1962121212121212
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 10 final Reward =  0.10331060606060607
+Step 11
+Bottom Reward = 1.0
+Volume Reward = 0.024
+Compactness Reward = 0.2143939393939394
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.11691969696969698
+Step 12
+Bottom Reward = 0.8
+Volume Reward = 0.025
+Compactness Reward = 0.2153846153846154
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.09726923076923079
+Step 13
+Bottom Reward = 0.5
+Volume Reward = 0.012
+Compactness Reward = 0.22377622377622378
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.06378881118881119
+Step 14
+Bottom Reward = 0.5
+Volume Reward = 0.01
+Compactness Reward = 0.23076923076923078
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.06353846153846154
+Step 15
+Bottom Reward = 1.0
+Volume Reward = 0.012
+Compactness Reward = 0.23916083916083916
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.11455804195804196
+Step 16
+Bottom Reward = 0.6
+Volume Reward = 0.048
+Compactness Reward = 0.2727272727272727
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.08703636363636363
+Step 17
+Bottom Reward = 0.3
+Volume Reward = 0.024
+Compactness Reward = 0.2895104895104895
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.050675524475524474
+Step 18
+Bottom Reward = 0.5
+Volume Reward = 0.004
+Compactness Reward = 0.2923076923076923
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.06481538461538462
+Step 19
+Bottom Reward = 0.2
+Volume Reward = 0.03
+Compactness Reward = 0.3132867132867133
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.04366433566433567
+Step 20
+Bottom Reward = 0.5
+Volume Reward = 0.015
+Compactness Reward = 0.3237762237762238
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.06968881118881119
+Step 21
+Box misplaced = -0.1
+Step 22
+Bottom Reward = 0.5
+Volume Reward = 0.016
+Compactness Reward = 0.334965034965035
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.07054825174825174
+Step 23
+Bottom Reward = 0.3
+Volume Reward = 0.015
+Compactness Reward = 0.34545454545454546
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.05077272727272727
+Step 24
+Box misplaced = -0.1
+Step 26
+Box misplaced = -0.1
+Step 28
+Bottom Reward = 0.3
+Volume Reward = 0.008
+Compactness Reward = 0.35104895104895106
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.048952447552447556
+Step 29
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.35384615384615387
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 29 final Reward =  0.11789230769230771
+Step 30
+Bottom Reward = 0.3
+Volume Reward = 0.009
+Compactness Reward = 0.3301282051282051
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.04820641025641026
+Step 31
+Box misplaced = -0.1
+Step 33
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.30361305361305363
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.025980652680652683
+Step 34
+Box misplaced = -0.1
+Episode ended = 0.42100000000000004
+==== Episode 6 END ====
+Total reward: 1.84
+Boxes placed: 27/35
+Utilization: 52.10%
+
+==== Episode 7 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.018
+Compactness Reward = 1.0
+Height Penalty = -0.09000000000000001
+Time Penalty = -0.001
+Step 0 final Reward =  0.0644
+Step 1
+Bottom Reward = 0.8
+Volume Reward = 0.012
+Compactness Reward = 0.3333333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 1 final Reward =  0.09926666666666668
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.025
+Compactness Reward = 0.3819444444444444
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.12559722222222225
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.006
+Compactness Reward = 0.4236111111111111
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.12198055555555556
+Step 4
+Bottom Reward = 1.0
+Volume Reward = 0.027
+Compactness Reward = 0.5238095238095238
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 4 final Reward =  0.12329047619047617
+Step 5
+Bottom Reward = 0.5
+Volume Reward = 0.048
+Compactness Reward = 0.30357142857142855
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.07857857142857143
+Step 6
+Bottom Reward = 0.7
+Volume Reward = 0.009
+Compactness Reward = 0.3236607142857143
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.0878830357142857
+Step 7
+Bottom Reward = 1.0
+Volume Reward = 0.003
+Compactness Reward = 0.23125
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.1114625
+Step 8
+Bottom Reward = 0.7
+Volume Reward = 0.012
+Compactness Reward = 0.25
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.0851
+Step 9
+Bottom Reward = 0.3
+Volume Reward = 0.032
+Compactness Reward = 0.21818181818181817
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.049509090909090905
+Step 10
+Bottom Reward = 1.0
+Volume Reward = 0.06
+Compactness Reward = 0.2290909090909091
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.12845454545454546
+Step 11
+Bottom Reward = 0.5
+Volume Reward = 0.125
+Compactness Reward = 0.3427272727272727
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.10363636363636364
+Step 12
+Bottom Reward = 0.9
+Volume Reward = 0.045
+Compactness Reward = 0.3836363636363636
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.1216818181818182
+Step 13
+Bottom Reward = 0.4
+Volume Reward = 0.036
+Compactness Reward = 0.4163636363636364
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.07061818181818183
+Step 14
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.42
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.12120000000000002
+Step 15
+Bottom Reward = 0.9
+Volume Reward = 0.02
+Compactness Reward = 0.33706293706293705
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.11185314685314687
+Step 16
+Bottom Reward = 0.1
+Volume Reward = 0.012
+Compactness Reward = 0.31666666666666665
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.028433333333333335
+Step 17
+Bottom Reward = 0.5
+Volume Reward = 0.004
+Compactness Reward = 0.3192307692307692
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.06616153846153847
+Step 18
+Bottom Reward = 0.3
+Volume Reward = 0.018
+Compactness Reward = 0.33076923076923076
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.050938461538461544
+Step 19
+Box misplaced = -0.1
+Step 20
+Bottom Reward = 0.1
+Volume Reward = 0.016
+Compactness Reward = 0.34102564102564104
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.030851282051282056
+Step 21
+Bottom Reward = 0.5
+Volume Reward = 0.006
+Compactness Reward = 0.34487179487179487
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.06804358974358975
+Step 22
+Box misplaced = -0.1
+Step 24
+Box misplaced = -0.1
+Step 25
+Bottom Reward = 1.0
+Volume Reward = 0.018
+Compactness Reward = 0.3564102564102564
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.12222051282051283
+Step 26
+Bottom Reward = 0.1
+Volume Reward = 0.004
+Compactness Reward = 0.358974358974359
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 26 final Reward =  0.02814871794871795
+Step 27
+Bottom Reward = 0.6
+Volume Reward = 0.015
+Compactness Reward = 0.3685897435897436
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 27 final Reward =  0.08192948717948718
+Step 28
+Bottom Reward = 0.5
+Volume Reward = 0.02
+Compactness Reward = 0.3541666666666667
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.07270833333333333
+Step 29
+Bottom Reward = 0.7
+Volume Reward = 0.018
+Compactness Reward = 0.36488095238095236
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 29 final Reward =  0.09264404761904761
+Step 30
+Bottom Reward = 0.2
+Volume Reward = 0.018
+Compactness Reward = 0.3755952380952381
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.04317976190476191
+Step 31
+Box misplaced = -0.1
+Step 33
+Bottom Reward = 0.4
+Volume Reward = 0.008
+Compactness Reward = 0.38035714285714284
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.06041785714285715
+Step 34
+Box misplaced = -0.1
+Episode ended = 0.539
+==== Episode 7 END ====
+Total reward: 2.29
+Boxes placed: 28/35
+Utilization: 63.90%
+
+==== Episode 8 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.024
+Compactness Reward = 1.0
+Height Penalty = -0.05
+Time Penalty = -0.001
+Step 0 final Reward =  0.1062
+Step 1
+Bottom Reward = 1.0
+Volume Reward = 0.012
+Compactness Reward = 0.4
+Height Penalty = -0.05
+Time Penalty = -0.001
+Step 1 final Reward =  0.07260000000000001
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.024
+Compactness Reward = 0.1875
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.11557500000000001
+Step 3
+Bottom Reward = 0.6
+Volume Reward = 0.045
+Compactness Reward = 0.16666666666666666
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.08083333333333333
+Step 4
+Bottom Reward = 0.6
+Volume Reward = 0.008
+Compactness Reward = 0.15694444444444444
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.06924722222222222
+Step 5
+Bottom Reward = 0.3
+Volume Reward = 0.012
+Compactness Reward = 0.1147842056932966
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.038339210284664825
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.006
+Compactness Reward = 0.12029384756657484
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.10681469237832875
+Step 7
+Bottom Reward = 0.6
+Volume Reward = 0.075
+Compactness Reward = 0.1891643709825528
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.09095821854912763
+Step 8
+Bottom Reward = 0.7
+Volume Reward = 0.06
+Compactness Reward = 0.2239057239057239
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.0981952861952862
+Step 9
+Bottom Reward = 1.0
+Volume Reward = 0.05
+Compactness Reward = 0.22097902097902097
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.12504895104895106
+Step 10
+Bottom Reward = 0.5
+Volume Reward = 0.048
+Compactness Reward = 0.2545454545454545
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.07612727272727272
+Step 11
+Box misplaced = -0.1
+Step 13
+Bottom Reward = 0.3
+Volume Reward = 0.009
+Compactness Reward = 0.26083916083916087
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.044741958041958046
+Step 14
+Bottom Reward = 0.3
+Volume Reward = 0.024
+Compactness Reward = 0.2776223776223776
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.05008111888111888
+Step 15
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.2916083916083916
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.1195804195804196
+Step 16
+Bottom Reward = 0.5
+Volume Reward = 0.02
+Compactness Reward = 0.3055944055944056
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 16 final Reward =  0.07027972027972028
+Step 17
+Bottom Reward = 0.6
+Volume Reward = 0.04
+Compactness Reward = 0.27797202797202797
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.08489860139860139
+Step 18
+Box misplaced = -0.1
+Step 19
+Bottom Reward = 0.3
+Volume Reward = 0.03
+Compactness Reward = 0.2708333333333333
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.051541666666666666
+Step 20
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.27403846153846156
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.02450192307692308
+Step 21
+Bottom Reward = 0.3
+Volume Reward = 0.036
+Compactness Reward = 0.2932692307692308
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.05446346153846154
+Step 22
+Bottom Reward = 1.0
+Volume Reward = 0.004
+Compactness Reward = 0.2954059829059829
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.11497029914529916
+Step 23
+Bottom Reward = 1.0
+Volume Reward = 0.015
+Compactness Reward = 0.3034188034188034
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.11867094017094018
+Step 24
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.3141025641025641
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.12070512820512821
+Step 25
+Bottom Reward = 0.1
+Volume Reward = 0.01
+Compactness Reward = 0.3194444444444444
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.02797222222222222
+Step 26
+Bottom Reward = 0.1
+Volume Reward = 0.009
+Compactness Reward = 0.32425213675213677
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 26 final Reward =  0.027912606837606838
+Step 27
+Box misplaced = -0.1
+Step 28
+Bottom Reward = 0.6
+Volume Reward = 0.004
+Compactness Reward = 0.3263888888888889
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.07651944444444445
+Step 29
+Box misplaced = -0.1
+Step 30
+Bottom Reward = 0.5
+Volume Reward = 0.008
+Compactness Reward = 0.33066239316239315
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.06793311965811966
+Step 31
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.33386752136752135
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 31 final Reward =  0.02749337606837607
+Step 32
+Bottom Reward = 0.5
+Volume Reward = 0.01
+Compactness Reward = 0.3392094017094017
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 32 final Reward =  0.0689604700854701
+Step 33
+Bottom Reward = 0.6
+Volume Reward = 0.004
+Compactness Reward = 0.34134615384615385
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.07726730769230769
+Step 34
+Box misplaced = -0.1
+Episode ended = 0.539
+==== Episode 8 END ====
+Total reward: 2.25
+Boxes placed: 29/35
+Utilization: 63.90%
+
+==== Episode 9 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.025
+Compactness Reward = 1.0
+Height Penalty = -0.08000000000000002
+Time Penalty = -0.001
+Step 0 final Reward =  0.07650000000000001
+Step 1
+Bottom Reward = 0.5
+Volume Reward = 0.025
+Compactness Reward = 0.17006802721088435
+Height Penalty = -0.020000000000000004
+Time Penalty = -0.001
+Step 1 final Reward =  0.04500340136054422
+Step 2
+Bottom Reward = 1.0
+Volume Reward = 0.02
+Compactness Reward = 0.12962962962962962
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.11148148148148149
+Step 3
+Bottom Reward = 0.5
+Volume Reward = 0.064
+Compactness Reward = 0.1654320987654321
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.0764716049382716
+Step 4
+Bottom Reward = 1.0
+Volume Reward = 0.05
+Compactness Reward = 0.18930041152263374
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 4 final Reward =  0.12346502057613169
+Step 5
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.19753086419753085
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.11127654320987655
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.009
+Compactness Reward = 0.20679012345679013
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.1120395061728395
+Step 7
+Bottom Reward = 0.5
+Volume Reward = 0.009
+Compactness Reward = 0.21604938271604937
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.06250246913580247
+Step 8
+Bottom Reward = 0.5
+Volume Reward = 0.015
+Compactness Reward = 0.20833333333333334
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.06391666666666666
+Step 9
+Bottom Reward = 0.5
+Volume Reward = 0.012
+Compactness Reward = 0.21944444444444444
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.06357222222222222
+Step 10
+Bottom Reward = 0.5
+Volume Reward = 0.04
+Compactness Reward = 0.2564814814814815
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.07382407407407407
+Step 11
+Bottom Reward = 0.3
+Volume Reward = 0.06
+Compactness Reward = 0.26003086419753085
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.060001543209876544
+Step 12
+Bottom Reward = 0.2
+Volume Reward = 0.004
+Compactness Reward = 0.2631172839506173
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.033355864197530866
+Step 13
+Bottom Reward = 0.5
+Volume Reward = 0.012
+Compactness Reward = 0.27237654320987653
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.06621882716049382
+Step 14
+Box misplaced = -0.1
+Step 15
+Bottom Reward = 1.0
+Volume Reward = 0.04
+Compactness Reward = 0.30324074074074076
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.12616203703703704
+Step 16
+Box misplaced = -0.1
+Step 17
+Bottom Reward = 0.5
+Volume Reward = 0.01
+Compactness Reward = 0.3109567901234568
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 17 final Reward =  0.06754783950617285
+Step 18
+Bottom Reward = 0.5
+Volume Reward = 0.024
+Compactness Reward = 0.2965277777777778
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.07102638888888889
+Step 19
+Bottom Reward = 0.2
+Volume Reward = 0.016
+Compactness Reward = 0.3076388888888889
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 19 final Reward =  0.03918194444444445
+Step 20
+Bottom Reward = 0.1
+Volume Reward = 0.012
+Compactness Reward = 0.3159722222222222
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.02839861111111111
+Step 21
+Bottom Reward = 0.7
+Volume Reward = 0.012
+Compactness Reward = 0.32430555555555557
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.08881527777777778
+Step 22
+Box misplaced = -0.1
+Step 23
+Bottom Reward = 1.0
+Volume Reward = 0.002
+Compactness Reward = 0.32569444444444445
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.11588472222222224
+Step 24
+Bottom Reward = 0.3
+Volume Reward = 0.009
+Compactness Reward = 0.33194444444444443
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 24 final Reward =  0.04829722222222222
+Step 25
+Box misplaced = -0.1
+Step 27
+Bottom Reward = 0.8
+Volume Reward = 0.025
+Compactness Reward = 0.34930555555555554
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 27 final Reward =  0.1039652777777778
+Step 28
+Bottom Reward = 0.4
+Volume Reward = 0.012
+Compactness Reward = 0.3576388888888889
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.06048194444444445
+Step 29
+Box misplaced = -0.1
+Step 30
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.36180555555555555
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 30 final Reward =  0.02889027777777778
+Step 31
+Bottom Reward = 1.0
+Volume Reward = 0.01
+Compactness Reward = 0.36875
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 31 final Reward =  0.1204375
+Step 32
+Box misplaced = -0.1
+Step 33
+Bottom Reward = 0.1
+Volume Reward = 0.005
+Compactness Reward = 0.37222222222222223
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.029111111111111115
+Step 34
+Bottom Reward = 0.2
+Volume Reward = 0.004
+Compactness Reward = 0.375
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 34 final Reward =  0.038950000000000005
+Episode ended = 0.5789500000000001
+==== Episode 9 END ====
+Total reward: 1.89
+Boxes placed: 28/35
+Utilization: 54.00%
+
+==== Episode 10 START ====
+Step 0
+Bottom Reward = 1.0
+Volume Reward = 0.016
+Compactness Reward = 1.0
+Height Penalty = -0.08000000000000002
+Time Penalty = -0.001
+Step 0 final Reward =  0.07379999999999998
+Step 1
+Bottom Reward = 0.6
+Volume Reward = 0.008
+Compactness Reward = 0.3333333333333333
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 1 final Reward =  0.06806666666666666
+Step 2
+Bottom Reward = 0.6
+Volume Reward = 0.06
+Compactness Reward = 0.34285714285714286
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 2 final Reward =  0.09414285714285714
+Step 3
+Bottom Reward = 1.0
+Volume Reward = 0.006
+Compactness Reward = 0.32142857142857145
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 3 final Reward =  0.11687142857142857
+Step 4
+Bottom Reward = 0.1
+Volume Reward = 0.02
+Compactness Reward = 0.21153846153846154
+Height Penalty = -0.010000000000000002
+Time Penalty = -0.001
+Step 4 final Reward =  0.015576923076923075
+Step 5
+Bottom Reward = 1.0
+Volume Reward = 0.08
+Compactness Reward = 0.202991452991453
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 5 final Reward =  0.13314957264957264
+Step 6
+Bottom Reward = 1.0
+Volume Reward = 0.01
+Compactness Reward = 0.13149243918474687
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 6 final Reward =  0.10857462195923735
+Step 7
+Bottom Reward = 1.0
+Volume Reward = 0.012
+Compactness Reward = 0.12942612942612944
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 7 final Reward =  0.10907130647130649
+Step 8
+Bottom Reward = 0.9
+Volume Reward = 0.02
+Compactness Reward = 0.14163614163614163
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 8 final Reward =  0.1020818070818071
+Step 9
+Bottom Reward = 0.5
+Volume Reward = 0.075
+Compactness Reward = 0.1686813186813187
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 9 final Reward =  0.07993406593406595
+Step 10
+Bottom Reward = 0.7
+Volume Reward = 0.012
+Compactness Reward = 0.17527472527472526
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 10 final Reward =  0.08136373626373626
+Step 11
+Bottom Reward = 1.0
+Volume Reward = 0.06
+Compactness Reward = 0.20824175824175825
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 11 final Reward =  0.1274120879120879
+Step 12
+Bottom Reward = 0.5
+Volume Reward = 0.08
+Compactness Reward = 0.22927072927072928
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 12 final Reward =  0.08446353646353648
+Step 13
+Bottom Reward = 0.7
+Volume Reward = 0.003
+Compactness Reward = 0.23076923076923078
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 13 final Reward =  0.08143846153846153
+Step 14
+Bottom Reward = 0.4
+Volume Reward = 0.045
+Compactness Reward = 0.2532467532467532
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 14 final Reward =  0.06516233766233767
+Step 15
+Bottom Reward = 0.5
+Volume Reward = 0.05
+Compactness Reward = 0.27822177822177824
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 15 final Reward =  0.07791108891108892
+Step 16
+Box misplaced = -0.1
+Step 18
+Bottom Reward = 0.7
+Volume Reward = 0.012
+Compactness Reward = 0.2842157842157842
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 18 final Reward =  0.0868107892107892
+Step 19
+Box misplaced = -0.1
+Step 20
+Bottom Reward = 0.3
+Volume Reward = 0.003
+Compactness Reward = 0.2857142857142857
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 20 final Reward =  0.044185714285714286
+Step 21
+Bottom Reward = 0.1
+Volume Reward = 0.012
+Compactness Reward = 0.2917082917082917
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 21 final Reward =  0.027185414585414586
+Step 22
+Bottom Reward = 0.5
+Volume Reward = 0.009
+Compactness Reward = 0.2962037962037962
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 22 final Reward =  0.06651018981018982
+Step 23
+Bottom Reward = 0.2
+Volume Reward = 0.008
+Compactness Reward = 0.3001998001998002
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 23 final Reward =  0.03640999000999001
+Step 24
+Box misplaced = -0.1
+Step 25
+Bottom Reward = 1.0
+Volume Reward = 0.008
+Compactness Reward = 0.3041958041958042
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 25 final Reward =  0.11660979020979022
+Step 26
+Bottom Reward = 0.6
+Volume Reward = 0.02
+Compactness Reward = 0.3141858141858142
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 26 final Reward =  0.08070929070929071
+Step 27
+Box misplaced = -0.1
+Step 28
+Bottom Reward = 0.2
+Volume Reward = 0.002
+Compactness Reward = 0.31518481518481517
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 28 final Reward =  0.03535924075924076
+Step 29
+Bottom Reward = 0.1
+Volume Reward = 0.006
+Compactness Reward = 0.3181818181818182
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 29 final Reward =  0.02670909090909091
+Step 30
+Box misplaced = -0.1
+Step 32
+Bottom Reward = 0.5
+Volume Reward = 0.01
+Compactness Reward = 0.32317682317682317
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 32 final Reward =  0.06815884115884116
+Step 33
+Bottom Reward = 0.6
+Volume Reward = 0.003
+Compactness Reward = 0.3246753246753247
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 33 final Reward =  0.07613376623376623
+Step 34
+Bottom Reward = 0.1
+Volume Reward = 0.002
+Compactness Reward = 0.3256743256743257
+Height Penalty = -0.0
+Time Penalty = -0.001
+Step 34 final Reward =  0.025883716283716288
+Episode ended = 0.6778837162837164
+==== Episode 10 END ====
+Total reward: 2.06
+Boxes placed: 28/35
+Utilization: 65.20%
+

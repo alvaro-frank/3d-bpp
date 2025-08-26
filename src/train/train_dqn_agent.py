@@ -35,6 +35,12 @@ def train_dqn_agent(
     agent = DQNAgent(state_dim, action_dim) # RL agent
     volume_utilizations = [] # track utilization % per episode
 
+    log_file = "train/train_dqn_log.txt"
+
+    # Before training starts: clear old log
+    with open(log_file, "w") as f:
+        f.write("==== DQN Training Log ====\n\n")
+
     # Optional: prepare directory for GIF frames
     if generate_gif:
         gif_dir = "gif_frames"
@@ -42,6 +48,10 @@ def train_dqn_agent(
         frame_count = 0
 
     for episode in range(num_episodes):
+        # Write episode header
+        with open(log_file, "a") as f:
+            f.write(f"==== Episode {episode+1} START ====\n")
+
         state = env.reset()
         
         # Legacy epsilon decay line (if step-based schedule is disabled)
@@ -55,7 +65,7 @@ def train_dqn_agent(
 
             # Select action using epsilon-greedy (with mask applied)
             action = agent.get_action(state, env.action_space, mask=mask)
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(action, log_file=log_file)
 
             if generate_gif:
                 frame_path = os.path.join(gif_dir, f"frame_{frame_count:04d}.png")
@@ -76,6 +86,12 @@ def train_dqn_agent(
         bin_volume = env.bin.bin_volume()
         pct_volume_used = (volume_used / bin_volume) * 100
         volume_utilizations.append(pct_volume_used)
+
+        with open(log_file, "a") as f:
+          f.write(f"==== Episode {episode+1} END ====\n")
+          f.write(f"Total reward: {total_reward:.2f}\n")
+          f.write(f"Boxes placed: {len(env.bin.boxes)}/{env.max_boxes}\n")
+          f.write(f"Utilization: {pct_volume_used:.2f}%\n\n")
 
         print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%")
 
