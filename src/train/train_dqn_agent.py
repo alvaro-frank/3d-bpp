@@ -5,6 +5,7 @@ from agents.dqn_agent import DQNAgent
 from utils.visualization import plot_bin
 from utils.visualization import create_gif
 import shutil
+import matplotlib.pyplot as plt
 
 def train_dqn_agent(
     num_episodes=100,
@@ -30,16 +31,22 @@ def train_dqn_agent(
     # Initialize environment and agent
     env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes)
     state = env.reset()
-    state_dim = len(state) # number of features in the state
+    state_dim = env.observation_space.shape[0] # number of features in the state
     action_dim = len(env.discrete_actions) # total number of discrete actions
     agent = DQNAgent(state_dim, action_dim) # RL agent
+
+    rewards_per_episode = []
     volume_utilizations = [] # track utilization % per episode
 
     log_file = "train/train_dqn_log.txt"
+    log_positions = "train/train_dqn_positions.txt"
 
     # Before training starts: clear old log
     with open(log_file, "w") as f:
         f.write("==== DQN Training Log ====\n\n")
+
+    with open(log_positions, "w") as f:
+        f.write("==== DQN Training Boxes Positions ====\n\n")
 
     # Optional: prepare directory for GIF frames
     if generate_gif:
@@ -48,14 +55,14 @@ def train_dqn_agent(
         frame_count = 0
 
     for episode in range(num_episodes):
-        # Write episode header
         with open(log_file, "a") as f:
+            f.write(f"==== Episode {episode+1} START ====\n")
+
+        with open(log_positions, "a") as f:
             f.write(f"==== Episode {episode+1} START ====\n")
 
         state = env.reset()
         
-        # Legacy epsilon decay line (if step-based schedule is disabled)
-        agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
         total_reward = 0
         done = False
 
@@ -65,7 +72,7 @@ def train_dqn_agent(
 
             # Select action using epsilon-greedy (with mask applied)
             action = agent.get_action(state, env.action_space, mask=mask)
-            next_state, reward, done, info = env.step(action, log_file=log_file)
+            next_state, reward, done, info = env.step(action, log_file=log_file, pos_file=log_positions)
 
             if generate_gif:
                 frame_path = os.path.join(gif_dir, f"frame_{frame_count:04d}.png")
@@ -82,6 +89,7 @@ def train_dqn_agent(
             total_reward += reward
 
         # Episode ended: compute utilization metrics
+        rewards_per_episode.append(total_reward)
         volume_used = env.get_placed_boxes_volume()
         bin_volume = env.bin.bin_volume()
         pct_volume_used = (volume_used / bin_volume) * 100
@@ -93,10 +101,38 @@ def train_dqn_agent(
           f.write(f"Boxes placed: {len(env.bin.boxes)}/{env.max_boxes}\n")
           f.write(f"Utilization: {pct_volume_used:.2f}%\n\n")
 
-        print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%")
+        with open(log_positions, "a") as f:
+          f.write(f"==== Episode {episode+1} END ====\n")  
+
+        print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
 
     if generate_gif:
         create_gif(gif_dir, gif_name)
         shutil.rmtree(gif_dir)
+
+    save_path = os.path.join("runs", "learning_curve.png")
+
+    # ✅ Plot learning curve AFTER all episodes
+    plt.figure(figsize=(12,5))
+
+    # Total Reward curve
+    plt.subplot(1,2,1)
+    plt.plot(rewards_per_episode, label="Total Reward")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.title("Learning Curve (Reward)")
+    plt.legend()
+
+    # Utilization curve
+    plt.subplot(1,2,2)
+    plt.plot(volume_utilizations, label="Volume Utilization %", color="orange")
+    plt.xlabel("Episode")
+    plt.ylabel("Utilization (%)")
+    plt.title("Bin Volume Utilization")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close()
 
     return agent

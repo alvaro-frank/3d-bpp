@@ -66,15 +66,13 @@ class DQNAgent:
         # Hyperparameters
         self.batch_size = 64
         self.gamma = 0.99 # discount factor
-        self.epsilon_decay = 0.995
-        self.epsilon_min = 0.05
         self.update_target_steps = 100 # target network update frequency
         self.step_count = 0
 
-        # Epsilon-greedy schedule (step-based)
+        # Epsilon-greedy schedule
         self.epsilon_start = 1.0
         self.epsilon_final = 0.05
-        self.epsilon_decay_steps = 500 # how many steps until epsilon reaches final value
+        self.epsilon_decay_steps = 50000 # how many steps until epsilon reaches final value
         self.global_step = 0 # total environment steps taken
         self.epsilon = self.epsilon_start # current epsilon
 

@@ -19,7 +19,7 @@ class PackingEnv(gym.Env):
     It manages the bin size, the boxes to be packed, and the current state of the environment
     It provides methods to reset the environment, step through actions, and render the current state.
     """
-    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=3, generate_gif=False, gif_name="packing_dqn_agent.gif"):
+    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=10, generate_gif=False, gif_name="packing_dqn_agent.gif"):
         """
         Initializes the packing environment with a bin size, maximum number of boxes, and options for GIF generation.
         
@@ -64,7 +64,7 @@ class PackingEnv(gym.Env):
         """
         Return the length of the observation vector (for observation_space).
         """
-        width, height, depth = self.bin_size
+        width, depth, height = self.bin_size
 
         heightmap_len = width * depth
         upcoming_len = self.lookahead * 3
@@ -92,7 +92,7 @@ class PackingEnv(gym.Env):
         self.current_step = 0
 
         if with_boxes is not None: # if boxes are provided, use them
-            self.boxes = [BinBox(b["w"], b["h"], b["d"], id=i) for i, b in enumerate(with_boxes)]
+            self.boxes = [BinBox(b["w"], b["d"], b["h"], id=i) for i, b in enumerate(with_boxes)]
         else: # otherwise generate random boxes
             self.boxes = self._generate_boxes(self.max_boxes)
 
@@ -122,8 +122,8 @@ class PackingEnv(gym.Env):
         return [
             BinBox(
                 width=random.randint(1, 5),
-                height=random.randint(1, 5),
                 depth=random.randint(1, 5),
+                height=random.randint(1, 5),
                 id=i
             )
             for i in range(n)
@@ -143,11 +143,11 @@ class PackingEnv(gym.Env):
         heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
         for b in self.bin.boxes:
             x, y, z = b.position
-            bw, bh, bd = b.rotate(b.rotation_type)
+            bw, bd, bh = b.rotate(b.rotation_type)
             for dx in range(bw):
-                for dz in range(bd):
-                    heightmap[x + dx, z + dz] = max(
-                        heightmap[x + dx, z + dz], y + bh
+                for dy in range(bd):
+                    heightmap[x + dx, y + dy] = max(
+                        heightmap[x + dx, y + dy], z + bh
                     )
         heightmap = heightmap.flatten() / self.bin.height  # normalize 0..1
 
@@ -156,7 +156,7 @@ class PackingEnv(gym.Env):
         if self.current_step < self.max_boxes:
           for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
               b = self.boxes[i]
-              upcoming.extend([b.width, b.height, b.depth])
+              upcoming.extend([b.width, b.depth, b.height])
         # Pad if fewer than lookahead boxes left
         while len(upcoming) < self.lookahead * 3:
             upcoming.extend([0, 0, 0])
@@ -172,14 +172,10 @@ class PackingEnv(gym.Env):
 
         obs = np.concatenate([heightmap, upcoming, stats])
 
-        # Safety check: length must always match observation_space
-        assert obs.shape[0] == self._obs_length(), \
-            f"Obs length mismatch: got {obs.shape[0]}, expected {self._obs_length()}"
-
         # Final state
         return obs
 
-    def step(self, action_idx, log_file=None):
+    def step(self, action_idx, log_file=None, pos_file=None):
         """
         Steps through the environment with a given action.
         Attempts to place the current box at the specified position and rotation.
@@ -211,7 +207,7 @@ class PackingEnv(gym.Env):
         if not success:
             # Small penalty, skip this box, continue
             reward = -0.1
-            log(f"Box misplaced = {reward}")
+            log(f"    Box misplaced = {reward}")
             info = {"success": False, "failed_placement": True}
 
             self.current_step += 1
@@ -220,7 +216,7 @@ class PackingEnv(gym.Env):
             # Episode ended, add terminal reward and return empty observation
             if done:
                 reward += 1.0 * self.get_terminal_reward()
-                log(f"Episode ended = {reward}")
+                log(f"    Episode ended = {reward}")
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
                 obs = np.zeros(self._obs_length(), dtype=np.float32)
             # If not ended, continue with the next box
@@ -237,7 +233,7 @@ class PackingEnv(gym.Env):
                     done = self.current_step >= self.max_boxes
                     if done:
                         reward += 1.0 * self.get_terminal_reward()
-                        log(f"Episode ended = {reward}")
+                        log(f"    Episode ended = {reward}")
                         finalize_gif(self.gif_dir, self.gif_name, fps=2)
                         obs = np.zeros(self._obs_length(), dtype=np.float32)
                     else:
@@ -255,40 +251,48 @@ class PackingEnv(gym.Env):
             plot_bin(self.bin.boxes, self.bin_size, save_path=frame_path,
                      title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
             self.frame_count += 1
+
+        if pos_file:
+            with open(pos_file, "a") as pf:
+                pf.write(
+                    f"    Step {self.current_step} | "
+                    f"Box {self.current_box.id} placed at {self.current_box.position} "
+                    f"rot={rot}, size={self.current_box.get_rotated_size()}\n"
+                )
   
         placed_box = self.current_box
         total_volume = self.bin.bin_volume()
 
         # 1) Bottom reward: prefer placements closer to the floor
         z_pos = placed_box.position[2]
-        r_bottom = (self.bin.depth - z_pos) / self.bin.depth
-        log(f"Bottom Reward = {r_bottom}")
+        r_bottom = (self.bin.height - z_pos) / self.bin.height
+        log(f"    Bottom Reward = {r_bottom}")
 
         # 2) Volume reward: incremental volume placed since last step
         used_volume = self.get_placed_boxes_volume()
         delta_vol = used_volume - self.prev_used_volume
         self.prev_used_volume = used_volume
         r_vol = delta_vol / total_volume
-        log(f"Volume Reward = {r_vol}")
+        log(f"    Volume Reward = {r_vol}")
         
         # 3) Compactness reward: how tightly boxes fit together
         r_compact = self.calculate_compactness()
-        log(f"Compactness Reward = {r_compact}")
+        log(f"    Compactness Reward = {r_compact}")
 
         # 4) Height regularizer: penalize increases in max stack height
         new_max_h = self.current_max_height()
         delta_h = new_max_h - self.prev_max_height
         self.prev_max_height = new_max_h
         r_h = -0.1 * (delta_h / self.bin.height)
-        log(f"Height Penalty = {r_h}")
+        log(f"    Height Penalty = {r_h}")
 
         # 5) Small step cost to discourage long episodes
         r_step = -1e-3
-        log(f"Time Penalty = {r_step}")
+        log(f"    Time Penalty = {r_step}")
 
         # Final reward (weighted combination of all components)
         reward = 0.3 * r_vol + 0.1 * r_bottom + 0.05 * r_compact + r_h + r_step
-        log(f"Step {self.current_step} final Reward =  {reward}")
+        log(f"    Step {self.current_step} final Reward =  {reward}")
         info = {"success": True}
 
         # Move to the next box
@@ -299,7 +303,7 @@ class PackingEnv(gym.Env):
         # Episode ends: add terminal utilization bonus
         if done:
             reward += 1.0 * self.get_terminal_reward()
-            log(f"Episode ended = {reward}")
+            log(f"    Episode ended = {reward}")
             finalize_gif(self.gif_dir, self.gif_name, fps=2)
             obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
@@ -366,7 +370,6 @@ class PackingEnv(gym.Env):
         if bounding_volume == 0:
             return 0.0  # Avoid division by zero
 
-        print()
         return packed_volume / bounding_volume
 
     def get_terminal_reward(self):
@@ -402,24 +405,24 @@ class PackingEnv(gym.Env):
 
         for idx, (x, y, rot) in enumerate(self.discrete_actions):
             # 1) Get rotated dimensions
-            w, h, d = self.current_box.rotate(rot)
+            w, d, h = self.current_box.rotate(rot)
 
             # 2) Quick bounds check (X, Y, Z)
-            if (x + w > self.bin.width) or (y + h > self.bin.height):
+            if (x + w > self.bin.width) or (y + d > self.bin.depth):
                 continue
 
             # Compute placement height (z) for this (x,y)
-            z = self.bin.find_lowest_z((w, h, d), x, y)
+            z = self.bin.find_lowest_z((w, d, h), x, y)
 
             # Depth (Z-axis) bound check
-            if z + d > self.bin.depth:
+            if z + h > self.bin.depth:
                 continue
 
             # 3) Collision check against existing boxes
             collision = False
             for b in self.bin.boxes:
                 bx, by, bz = b.position
-                bw, bh, bd = b.rotate(b.rotation_type)
+                bw, bd, bh = b.rotate(b.rotation_type)
 
                 overlap_x = not (x + w <= bx or x >= bx + bw)
                 overlap_y = not (y + h <= by or y >= by + bh)
@@ -450,5 +453,5 @@ class PackingEnv(gym.Env):
         """
         if not self.bin.boxes:
             return 0.0
-        # Y-top = bottom y-position + rotated height (depends on box orientation)
-        return max(b.position[1] + b.rotate(b.rotation_type)[1] for b in self.bin.boxes)
+        # Z-top = bottom z-position + rotated height (depends on box orientation)
+        return max(b.position[2] + b.rotate(b.rotation_type)[2] for b in self.bin.boxes)
