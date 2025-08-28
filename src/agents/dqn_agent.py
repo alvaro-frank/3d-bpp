@@ -61,7 +61,7 @@ class DQNAgent:
         self.criterion = nn.MSELoss()
         
         # Replay buffer to store transitions
-        self.memory = deque(maxlen=10000)
+        self.memory = deque(maxlen=50000)
 
         # Hyperparameters
         self.batch_size = 64
@@ -71,8 +71,8 @@ class DQNAgent:
 
         # Epsilon-greedy schedule
         self.epsilon_start = 1.0
-        self.epsilon_final = 0.05
-        self.epsilon_decay_steps = 50000 # how many steps until epsilon reaches final value
+        self.epsilon_final = 0.15
+        self.epsilon_decay_steps = 100000 # how many steps until epsilon reaches final value
         self.global_step = 0 # total environment steps taken
         self.epsilon = self.epsilon_start # current epsilon
 

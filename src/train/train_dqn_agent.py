@@ -104,20 +104,35 @@ def train_dqn_agent(
         with open(log_positions, "a") as f:
           f.write(f"==== Episode {episode+1} END ====\n")  
 
-        print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
-
+        #print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
+        if (episode + 1) % 100 == 0:
+            mean_reward = np.mean(rewards_per_episode[-100:])
+            mean_util   = np.mean(volume_utilizations[-100:])
+            print(f"📊 Episodes {episode-98}–{episode+1}: "
+                  f"Mean Reward = {mean_reward:.2f}, "
+                  f"Mean Utilization = {mean_util:.2f}%, "
+                  f"Epsilon = {agent.epsilon:.2f}")
+                  
     if generate_gif:
         create_gif(gif_dir, gif_name)
         shutil.rmtree(gif_dir)
 
     save_path = os.path.join("runs", "learning_curve.png")
 
+    window = 100
+    rewards_smoothed = [np.mean(rewards_per_episode[i:i+window]) 
+                        for i in range(0, len(rewards_per_episode), window)]
+    utilizations_smoothed = [np.mean(volume_utilizations[i:i+window]) 
+                             for i in range(0, len(volume_utilizations), window)]
+    episodes_axis = list(range(window, len(rewards_per_episode)+1, window))
+
     # ✅ Plot learning curve AFTER all episodes
     plt.figure(figsize=(12,5))
 
     # Total Reward curve
     plt.subplot(1,2,1)
-    plt.plot(rewards_per_episode, label="Total Reward")
+    plt.plot(rewards_per_episode, color="lightgray", alpha=0.6, label="Reward (all eps)")
+    plt.plot(episodes_axis, rewards_smoothed, label="Total Reward (avg/100)")
     plt.xlabel("Episode")
     plt.ylabel("Reward")
     plt.title("Learning Curve (Reward)")
@@ -125,7 +140,8 @@ def train_dqn_agent(
 
     # Utilization curve
     plt.subplot(1,2,2)
-    plt.plot(volume_utilizations, label="Volume Utilization %", color="orange")
+    plt.plot(volume_utilizations, color="lightgray", alpha=0.6, label="Utilization (all eps)")
+    plt.plot(episodes_axis, utilizations_smoothed, label="Volume Utilization % (avg/100)", color="orange")
     plt.xlabel("Episode")
     plt.ylabel("Utilization (%)")
     plt.title("Bin Volume Utilization")

@@ -39,6 +39,7 @@ class PackingEnv(gym.Env):
 
         self.prev_used_volume = 0.0
         self.prev_max_height = 0.0 
+        self.total_boxes_volume = 0.0
         
         self.generate_gif = generate_gif
         self.gif_name = gif_name
@@ -68,7 +69,7 @@ class PackingEnv(gym.Env):
 
         heightmap_len = width * depth
         upcoming_len = self.lookahead * 3
-        stats_len = 4
+        stats_len = 3
 
         return heightmap_len + upcoming_len + stats_len
 
@@ -98,7 +99,8 @@ class PackingEnv(gym.Env):
 
         self.current_box = self.boxes[self.current_step]
         self.prev_used_volume = 0
-        self.prev_max_height = 0.0 
+        self.prev_max_height = 0.0
+        self.total_boxes_volume = sum(box.get_volume() for box in self.boxes)
 
         if self.generate_gif:
             self.frame_count = 0
@@ -166,7 +168,7 @@ class PackingEnv(gym.Env):
         stats = np.array([
             (self.max_boxes - self.current_step) / self.max_boxes,   # remaining ratio
             self.get_placed_boxes_volume() / self.bin.bin_volume(),  # utilization
-            self.calculate_compactness(),                           # compactness
+            #self.calculate_compactness(),                           # compactness
             self.current_max_height() / self.bin.height             # normalized max height
         ], dtype=np.float32)
 
@@ -201,12 +203,14 @@ class PackingEnv(gym.Env):
         log(f"Step {self.current_step}")
         x, y, rot = self.discrete_actions[action_idx] # get position and rotation from action index
 
+        prev_compactness = self.calculate_compactness(self.bin.boxes)
+
         success = self.bin.place_box(self.current_box, (x, y), rot) # check if placement is valid
 
         # If placement failed
         if not success:
             # Small penalty, skip this box, continue
-            reward = -0.1
+            reward = -0.5
             log(f"    Box misplaced = {reward}")
             info = {"success": False, "failed_placement": True}
 
@@ -228,7 +232,8 @@ class PackingEnv(gym.Env):
                 
                 # If no valid placement exists, skip with another penalty
                 if not mask.any():
-                    reward += -0.1
+                    reward += -0.5
+                    log(f"    Box misplaced = {reward}")
                     self.current_step += 1
                     done = self.current_step >= self.max_boxes
                     if done:
@@ -263,23 +268,31 @@ class PackingEnv(gym.Env):
         placed_box = self.current_box
         total_volume = self.bin.bin_volume()
 
+        """
         # 1) Bottom reward: prefer placements closer to the floor
         z_pos = placed_box.position[2]
         r_bottom = (self.bin.height - z_pos) / self.bin.height
         log(f"    Bottom Reward = {r_bottom}")
+        """
 
         # 2) Volume reward: incremental volume placed since last step
         used_volume = self.get_placed_boxes_volume()
         delta_vol = used_volume - self.prev_used_volume
         self.prev_used_volume = used_volume
-        r_vol = delta_vol / total_volume
+        r_vol = 2 * (delta_vol / self.total_boxes_volume)
         log(f"    Volume Reward = {r_vol}")
+
+        # 3) Stability reward (suporte + compactness incremental)
+        r_stability, new_compactness = self.calculate_stability_reward(placed_box, prev_compactness)
+        log(f"    Stability Reward = {r_stability}")
         
+        """
         # 3) Compactness reward: how tightly boxes fit together
         r_compact = self.calculate_compactness()
         log(f"    Compactness Reward = {r_compact}")
-
+        """
         # 4) Height regularizer: penalize increases in max stack height
+        """
         new_max_h = self.current_max_height()
         delta_h = new_max_h - self.prev_max_height
         self.prev_max_height = new_max_h
@@ -289,9 +302,11 @@ class PackingEnv(gym.Env):
         # 5) Small step cost to discourage long episodes
         r_step = -1e-3
         log(f"    Time Penalty = {r_step}")
+        """
 
         # Final reward (weighted combination of all components)
-        reward = 0.3 * r_vol + 0.1 * r_bottom + 0.05 * r_compact + r_h + r_step
+        #reward = 0.3 * r_vol + 0.1 * r_bottom + 0.05 * r_compact + r_h + r_step
+        reward = 0.3 * r_vol + 0.7 * r_stability
         log(f"    Step {self.current_step} final Reward =  {reward}")
         info = {"success": True}
 
@@ -335,42 +350,71 @@ class PackingEnv(gym.Env):
         """
         return sum(box.get_volume() for box in self.bin.boxes)
     
-    def calculate_compactness(self):
+    def calculate_compactness(self, boxes):
         """
-        Measure how tightly the placed boxes are packed together.
-
-        Compactness is defined as:
-        (total volume of placed boxes) / (volume of the bounding box that contains them all).
-
-        - If only one box is placed, compactness is assumed perfect (1.0).
-        - If the bounding volume is zero (safety check), return 0.0.
-
-        Returns:
-        - float: compactness score in range [0,1], where higher = tighter packing.
+        Compactness absoluta (entre 0 e 1):
+        volume das caixas colocadas / volume do bounding box que as contém.
         """
-        if len(self.bin.boxes) <= 1:
-            return 1.0  # Only one box placed, assume perfect compactness
+        if len(boxes) <= 1:
+            return 1.0
 
-        # Find the smallest coordinates occupied by any box (min corner)
-        min_x = min(b.position[0] for b in self.bin.boxes)
-        min_y = min(b.position[1] for b in self.bin.boxes)
-        min_z = min(b.position[2] for b in self.bin.boxes)
-        
-        # Find the farthest extents occupied by any box (max corner)
-        max_x = max(b.position[0] + b.width for b in self.bin.boxes)
-        max_y = max(b.position[1] + b.height for b in self.bin.boxes)
-        max_z = max(b.position[2] + b.depth for b in self.bin.boxes)
+        min_x = min(b.position[0] for b in boxes)
+        min_y = min(b.position[1] for b in boxes)
+        min_z = min(b.position[2] for b in boxes)
 
-        # Volume of the minimal bounding cuboid that encloses all placed boxes
+        max_x = max(b.position[0] + b.width for b in boxes)
+        max_y = max(b.position[1] + b.height for b in boxes)
+        max_z = max(b.position[2] + b.depth for b in boxes)
+
         bounding_volume = (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
-        
-        # Total actual volume of the boxes
-        packed_volume = sum(b.get_volume() for b in self.bin.boxes)
+        packed_volume = sum(b.get_volume() for b in boxes)
 
         if bounding_volume == 0:
-            return 0.0  # Avoid division by zero
+            return 0.0
 
         return packed_volume / bounding_volume
+
+    def calculate_stability_reward(self, placed_box, prev_compactness):
+        """
+        Combina suporte físico (contacto com chão ou outras caixas)
+        e compactness global numa única métrica.
+        """
+
+        # ---- Parte 1: Box support (base or other boxes)
+        if placed_box.position[2] == 0:
+            r_support = 1.0
+        else:
+            support_area = 0.0
+            box_area = placed_box.width * placed_box.depth
+
+            for other in self.bin.boxes:
+                if other == placed_box:
+                    continue
+
+                # sobreposição no plano X-Y
+                overlap_x = max(0, min(placed_box.position[0] + placed_box.width,
+                                      other.position[0] + other.width) -
+                                  max(placed_box.position[0], other.position[0]))
+                overlap_y = max(0, min(placed_box.position[1] + placed_box.depth,
+                                      other.position[1] + other.depth) -
+                                  max(placed_box.position[1], other.position[1]))
+                overlap_area = overlap_x * overlap_y
+
+                if overlap_area > 0 and placed_box.position[2] == other.position[2] + other.height:
+                    support_area += overlap_area
+
+            r_support = min(1.0, support_area / box_area)
+
+        # ---- Parte 2: Compactness global
+        new_compactness = self.calculate_compactness(self.bin.boxes)
+        delta_compactness = new_compactness - prev_compactness
+        r_compact = max(-1.0, min(1.0, delta_compactness * 5.0))
+
+        # ---- Combinação (ponderada)
+        alpha, beta = 0.4, 0.6
+        r_stability = alpha * r_support + beta * r_compact
+
+        return r_stability, new_compactness
 
     def get_terminal_reward(self):
         """
@@ -382,7 +426,12 @@ class PackingEnv(gym.Env):
                 where 1.0 means the bin is completely filled.
         """
         packed_volume = sum(b.get_volume() for b in self.bin.boxes)
-        return packed_volume / self.bin.bin_volume()
+        utilization = packed_volume / self.bin.bin_volume()
+
+        reward = 10 * utilization
+        reward += 5 * (len(self.bin.boxes) / self.max_boxes)
+
+        return reward
 
     def valid_action_mask(self):
         """
