@@ -33,7 +33,7 @@ def train_dqn_agent(
     state = env.reset()
     state_dim = env.observation_space.shape[0] # number of features in the state
     action_dim = len(env.discrete_actions) # total number of discrete actions
-    agent = DQNAgent(state_dim, action_dim) # RL agent
+    agent = DQNAgent(state_dim, action_dim, exploration="softmax") # RL agent
 
     rewards_per_episode = []
     volume_utilizations = [] # track utilization % per episode

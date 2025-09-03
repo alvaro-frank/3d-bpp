@@ -35,6 +35,9 @@ class PackingEnv(gym.Env):
         self.current_step = 0
         self.bin = None
         self.boxes = []
+        self.packed_boxes = []
+        self.skipped_boxes = []
+        self.placed_boxes = self.packed_boxes
         self.current_box = None
 
         self.prev_used_volume = 0.0
@@ -97,9 +100,15 @@ class PackingEnv(gym.Env):
         else: # otherwise generate random boxes
             self.boxes = self._generate_boxes(self.max_boxes)
 
+        #if getattr(self, "sort_boxes", False):
+        self.boxes.sort(key=lambda b: b.get_volume(), reverse=True)
+
         self.current_box = self.boxes[self.current_step]
         self.prev_used_volume = 0
         self.prev_max_height = 0.0
+        self.placed_boxes = []
+        self.skipped_boxes = []
+        self.initial_boxes = list(self.boxes)
         self.total_boxes_volume = sum(box.get_volume() for box in self.boxes)
 
         if self.generate_gif:
@@ -215,6 +224,7 @@ class PackingEnv(gym.Env):
             info = {"success": False, "failed_placement": True}
 
             self.current_step += 1
+            self.skipped_boxes.append(self.current_box)
             done = self.current_step >= self.max_boxes # check if all boxes are placed
 
             # Episode ended, add terminal reward and return empty observation
@@ -235,6 +245,7 @@ class PackingEnv(gym.Env):
                     reward += -0.5
                     log(f"    Box misplaced = {reward}")
                     self.current_step += 1
+                    self.skipped_boxes.append(self.current_box)
                     done = self.current_step >= self.max_boxes
                     if done:
                         reward += 1.0 * self.get_terminal_reward()
@@ -246,6 +257,7 @@ class PackingEnv(gym.Env):
                         obs = self._get_obs()
                 else:
                     # If valid placements exist, continue normally
+                    self.packed_boxes.append(self.current_box)
                     obs = self._get_obs()
 
             return obs, reward, done, info
@@ -264,7 +276,9 @@ class PackingEnv(gym.Env):
                     f"Box {self.current_box.id} placed at {self.current_box.position} "
                     f"rot={rot}, size={self.current_box.get_rotated_size()}\n"
                 )
-  
+
+        self.packed_boxes.append(self.current_box)
+
         placed_box = self.current_box
         total_volume = self.bin.bin_volume()
 
