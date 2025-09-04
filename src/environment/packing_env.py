@@ -12,6 +12,7 @@ from gym.spaces import Box as GymBox
 from environment.bin import Bin
 from utils.action_space import generate_discrete_actions
 from utils.visualization import plot_bin, finalize_gif
+from utils.box_generator import generate_boxes
 
 class PackingEnv(gym.Env):
     """
@@ -100,7 +101,6 @@ class PackingEnv(gym.Env):
         else: # otherwise generate random boxes
             self.boxes = self._generate_boxes(self.max_boxes)
 
-        #if getattr(self, "sort_boxes", False):
         self.boxes.sort(key=lambda b: b.get_volume(), reverse=True)
 
         self.current_box = self.boxes[self.current_step]
@@ -119,26 +119,6 @@ class PackingEnv(gym.Env):
             os.makedirs(self.gif_dir, exist_ok=True)
 
         return self._get_obs()
-
-    def _generate_boxes(self, n):
-        """
-        Generates a list of random boxes for the environment.
-        
-        Parameters:
-        - n (int): number of boxes to generate
-        
-        Returns:
-        - list: a list of Box objects with random dimensions
-        """
-        return [
-            BinBox(
-                width=random.randint(1, 5),
-                depth=random.randint(1, 5),
-                height=random.randint(1, 5),
-                id=i
-            )
-            for i in range(n)
-        ]
 
     def _get_obs(self):
         """
@@ -218,110 +198,32 @@ class PackingEnv(gym.Env):
 
         # If placement failed
         if not success:
-            # Small penalty, skip this box, continue
-            reward = -0.5
-            log(f"    Box misplaced = {reward}")
-            info = {"success": False, "failed_placement": True}
-
-            self.current_step += 1
+            log("    Box misplaced (ignored in simple version)")
+            reward = 0.0
             self.skipped_boxes.append(self.current_box)
-            done = self.current_step >= self.max_boxes # check if all boxes are placed
-
-            # Episode ended, add terminal reward and return empty observation
-            if done:
-                reward += 1.0 * self.get_terminal_reward()
-                log(f"    Episode ended = {reward}")
-                finalize_gif(self.gif_dir, self.gif_name, fps=2)
-                obs = np.zeros(self._obs_length(), dtype=np.float32)
-            # If not ended, continue with the next box
-            else:
-                self.current_box = self.boxes[self.current_step] # get the next box
-                
-                # Check if next box has any valid actions
-                mask = self.valid_action_mask()
-                
-                # If no valid placement exists, skip with another penalty
-                if not mask.any():
-                    reward += -0.5
-                    log(f"    Box misplaced = {reward}")
-                    self.current_step += 1
-                    self.skipped_boxes.append(self.current_box)
-                    done = self.current_step >= self.max_boxes
-                    if done:
-                        reward += 1.0 * self.get_terminal_reward()
-                        log(f"    Episode ended = {reward}")
-                        finalize_gif(self.gif_dir, self.gif_name, fps=2)
-                        obs = np.zeros(self._obs_length(), dtype=np.float32)
-                    else:
-                        self.current_box = self.boxes[self.current_step]
-                        obs = self._get_obs()
-                else:
-                    # If valid placements exist, continue normally
-                    self.packed_boxes.append(self.current_box)
-                    obs = self._get_obs()
-
-            return obs, reward, done, info
-
         # If placement succeeded
-        if self.generate_gif:
-            frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
-            plot_bin(self.bin.boxes, self.bin_size, save_path=frame_path,
-                     title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
-            self.frame_count += 1
+        else:
+            new_compactness = self.calculate_compactness(self.bin.boxes)
+            delta_compactness = new_compactness - prev_compactness
 
-        if pos_file:
-            with open(pos_file, "a") as pf:
-                pf.write(
-                    f"    Step {self.current_step} | "
-                    f"Box {self.current_box.id} placed at {self.current_box.position} "
-                    f"rot={rot}, size={self.current_box.get_rotated_size()}\n"
-                )
+            reward = 0.0
 
-        self.packed_boxes.append(self.current_box)
+            if self.generate_gif:
+                frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
+                plot_bin(self.bin.boxes, self.bin_size, save_path=frame_path,
+                        title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
+                self.frame_count += 1
 
-        placed_box = self.current_box
-        total_volume = self.bin.bin_volume()
+            if pos_file:
+                with open(pos_file, "a") as pf:
+                    pf.write(
+                        f"    Step {self.current_step} | "
+                        f"Box {self.current_box.id} placed at {self.current_box.position} "
+                        f"rot={rot}, size={self.current_box.get_rotated_size()}\n"
+                    )
 
-        """
-        # 1) Bottom reward: prefer placements closer to the floor
-        z_pos = placed_box.position[2]
-        r_bottom = (self.bin.height - z_pos) / self.bin.height
-        log(f"    Bottom Reward = {r_bottom}")
-        """
+            self.packed_boxes.append(self.current_box)
 
-        # 2) Volume reward: incremental volume placed since last step
-        used_volume = self.get_placed_boxes_volume()
-        delta_vol = used_volume - self.prev_used_volume
-        self.prev_used_volume = used_volume
-        r_vol = 2 * (delta_vol / self.total_boxes_volume)
-        log(f"    Volume Reward = {r_vol}")
-
-        # 3) Stability reward (suporte + compactness incremental)
-        r_stability, new_compactness = self.calculate_stability_reward(placed_box, prev_compactness)
-        log(f"    Stability Reward = {r_stability}")
-        
-        """
-        # 3) Compactness reward: how tightly boxes fit together
-        r_compact = self.calculate_compactness()
-        log(f"    Compactness Reward = {r_compact}")
-        """
-        # 4) Height regularizer: penalize increases in max stack height
-        """
-        new_max_h = self.current_max_height()
-        delta_h = new_max_h - self.prev_max_height
-        self.prev_max_height = new_max_h
-        r_h = -0.1 * (delta_h / self.bin.height)
-        log(f"    Height Penalty = {r_h}")
-
-        # 5) Small step cost to discourage long episodes
-        r_step = -1e-3
-        log(f"    Time Penalty = {r_step}")
-        """
-
-        # Final reward (weighted combination of all components)
-        #reward = 0.3 * r_vol + 0.1 * r_bottom + 0.05 * r_compact + r_h + r_step
-        reward = 0.3 * r_vol + 0.7 * r_stability
-        log(f"    Step {self.current_step} final Reward =  {reward}")
         info = {"success": True}
 
         # Move to the next box
@@ -331,8 +233,8 @@ class PackingEnv(gym.Env):
 
         # Episode ends: add terminal utilization bonus
         if done:
-            reward += 1.0 * self.get_terminal_reward()
-            log(f"    Episode ended = {reward}")
+            reward = 10 * self.calculate_utilization_ratio()
+            log(f"    Episode ended, utilization = {reward:.2f}")
             finalize_gif(self.gif_dir, self.gif_name, fps=2)
             obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
@@ -355,6 +257,15 @@ class PackingEnv(gym.Env):
             # Each box shows its ID, position (x, y, z), and chosen rotation type
             print(f"Box {b.id} at {b.position}, rotated {b.rotation_type}")
 
+    def _generate_boxes(self, n):
+        seed_used = random.randint(0, 10000)
+        
+        raw_boxes = generate_boxes(self.bin_size, num_items=n, seed=random.randint(0, 10000), structured=True)
+
+        boxes = [BinBox(width=w, depth=d, height=h, id=i) for i, (w, d, h) in enumerate(raw_boxes)]
+
+        return boxes
+
     def get_placed_boxes_volume(self):
         """
         Calculate the total volume of all boxes currently placed in the bin.
@@ -363,6 +274,17 @@ class PackingEnv(gym.Env):
         - float: sum of volumes of every placed box
         """
         return sum(box.get_volume() for box in self.bin.boxes)
+
+    def calculate_utilization_ratio(self):
+        """
+        Compute the final reward at the end of an episode.
+        Reward = ratio of used volume to total bin volume.
+        Range [0,1].
+        """
+        packed_volume = sum(b.get_volume() for b in self.bin.boxes)
+        utilization = packed_volume / self.bin.bin_volume()
+        return utilization
+
     
     def calculate_compactness(self, boxes):
         """

@@ -15,7 +15,7 @@ def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
 
     Returns:
     - list of episodes, where each episode is a list of dicts:
-      [{"w": ..., "h": ..., "d": ...}, ...]
+      [{"w": ..., "d": ..., "h": ...}, ...]
     """
     rng = np.random.default_rng(seed)
     sets = []
@@ -23,9 +23,9 @@ def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
         ep = []
         for _ in range(n_boxes):
             w = int(rng.integers(box_ranges["w_min"], box_ranges["w_max"] + 1))
-            h = int(rng.integers(box_ranges["h_min"], box_ranges["h_max"] + 1))
-            d = int(rng.integers(box_ranges["d_min"], box_ranges["d_max"] + 1))
-            ep.append({"w": w, "h": h, "d": d})
+            h = int(rng.integers(box_ranges["d_min"], box_ranges["d_max"] + 1))
+            d = int(rng.integers(box_ranges["h_min"], box_ranges["h_max"] + 1))
+            ep.append({"w": w, "d": d, "h": h})
         sets.append(ep)
     return sets
 

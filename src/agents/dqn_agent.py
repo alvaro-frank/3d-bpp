@@ -72,14 +72,15 @@ class DQNAgent:
         # Epsilon-greedy schedule
         self.exploration = exploration
         self.epsilon_start = 1.0
-        self.epsilon_final = 0.15
-        self.epsilon_decay_steps = 100000 # how many steps until epsilon reaches final value
+        self.epsilon_final = 0.10
+        self.epsilon_decay_steps = 40000 # how many steps until epsilon reaches final value
         self.global_step = 0 # total environment steps taken
         self.epsilon = self.epsilon_start # current epsilon
 
         self.temperature_start = 1.0
         self.temperature_final = 0.1
-        self.temperature_decay_steps = 40000
+        self.temperature_decay_steps = 20000
+        self.temperature = self.temperature_start
 
     def get_action(self, state, action_space, mask: np.ndarray = None):
         """
@@ -99,11 +100,13 @@ class DQNAgent:
         state_tensor = torch.from_numpy(np.asarray(state, dtype=np.float32)).unsqueeze(0).to(self.device)
         
         frac_T = min(1.0, self.global_step / self.temperature_decay_steps)
-        temperature = self.temperature_start + frac_T * (self.temperature_final - self.temperature_start)
+        self.temperature = self.temperature_start + frac_T * (self.temperature_final - self.temperature_start)
 
         # Update epsilon linearly with steps
         fraction = min(1.0, self.global_step / self.epsilon_decay_steps) 
         self.epsilon = self.epsilon_start + fraction * (self.epsilon_final - self.epsilon_start)
+
+        self.global_step += 1
 
          # --- Exploração epsilon-greedy ---
         if self.exploration == "epsilon":
@@ -129,7 +132,7 @@ class DQNAgent:
 
             # Subtração para estabilidade
             q_shifted = q_values - np.max(q_values)
-            exp_q = np.exp(q_shifted / temperature)
+            exp_q = np.exp(q_shifted / self.temperature)
 
             if exp_q.sum() == 0 or np.isnan(exp_q.sum()):
                 # fallback: escolher ação válida aleatória
@@ -153,19 +156,6 @@ class DQNAgent:
         - done (bool): whether the episode ended
         """
         self.memory.append((state, action_idx, reward, next_state, done))
-
-    def softmax_action(self, state, mask=None, temperature=1.0):
-        state = torch.from_numpy(np.asarray(state, dtype=np.float32)).unsqueeze(0).to(self.device)
-        with torch.no_grad():
-            q_values = self.model(state).squeeze(0).cpu().numpy()
-        if mask is not None:
-            q_values[~mask] = -1e9  # invalid actions
-        
-        # Softmax sobre Q-values
-        probs = np.exp(q_values / temperature)
-        probs /= np.sum(probs)
-        
-        return np.random.choice(len(q_values), p=probs)
 
     def train(self):
         """

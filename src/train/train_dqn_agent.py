@@ -53,7 +53,7 @@ def train_dqn_agent(
         gif_dir = "gif_frames"
         os.makedirs(gif_dir, exist_ok=True)
         frame_count = 0
-
+    
     for episode in range(num_episodes):
         with open(log_file, "a") as f:
             f.write(f"==== Episode {episode+1} START ====\n")
@@ -126,12 +126,12 @@ def train_dqn_agent(
                              for i in range(0, len(volume_utilizations), window)]
     episodes_axis = list(range(window, len(rewards_per_episode)+1, window))
 
-    # ✅ Plot learning curve AFTER all episodes
+    # TO DO: Pass to utils/visualization.py
+    # Plot learning curve AFTER all episodes
     plt.figure(figsize=(12,5))
 
     # Total Reward curve
     plt.subplot(1,2,1)
-    plt.plot(rewards_per_episode, color="lightgray", alpha=0.6, label="Reward (all eps)")
     plt.plot(episodes_axis, rewards_smoothed, label="Total Reward (avg/100)")
     plt.xlabel("Episode")
     plt.ylabel("Reward")
@@ -140,7 +140,6 @@ def train_dqn_agent(
 
     # Utilization curve
     plt.subplot(1,2,2)
-    plt.plot(volume_utilizations, color="lightgray", alpha=0.6, label="Utilization (all eps)")
     plt.plot(episodes_axis, utilizations_smoothed, label="Volume Utilization % (avg/100)", color="orange")
     plt.xlabel("Episode")
     plt.ylabel("Utilization (%)")

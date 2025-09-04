@@ -22,10 +22,10 @@ def main():
     4. Report average performance and regenerate GIFs for best runs.
     """
     # 0) Global seeding FIRST (makes everything reproducible)
-    SEED = 1234
+    SEED = 42
     N_EPISODES = 1000
     N_TESTS = 20
-    N_BOXES = 35
+    N_BOXES = 50
     seed_all(SEED)
 
     # 1) Train DQN
@@ -44,9 +44,9 @@ def main():
             seed=SEED,
             n_episodes=N_TESTS,
             n_boxes=N_BOXES,
-            box_ranges={"w_min": 1, "w_max": 5, "h_min": 1, "h_max": 5, "d_min": 1, "d_max": 5},
+            box_ranges={"w_min": 1, "w_max": 5, "d_min": 1, "d_max": 5, "h_min": 1, "h_max": 5},
         )
-        save_test_sets(str(test_path), test_sets)
+        #save_test_sets(str(test_path), test_sets)
 
     # 3) Evaluate DQN vs heuristic on same test episodes
     print("\n🤖 Evaluating DQN vs Heuristic:")
@@ -89,7 +89,7 @@ def main():
     best_heur_score, best_heur_idx = best_heur
     best_dqn_score, best_dqn_idx = best_dqn
 
-    print(f"\n🎞️ Generating GIF for best heuristic test (Episode {best_heur_idx}) "
+    print(f"\n🎞️ Generating GIF for best heuristic test (Episode {best_heur_idx+1}) "
           f"with {best_heur_score:.2f}% volume used...")
     evaluate_heuristic_on_episode(
         test_sets[best_heur_idx],
@@ -98,7 +98,7 @@ def main():
         gif_name=f"runs/heuristic_best_ep{best_heur_idx}.gif",
     )
 
-    print(f"\n🎞️ Generating GIF for best DQN test (Episode {best_dqn_idx}) "
+    print(f"\n🎞️ Generating GIF for best DQN test (Episode {best_dqn_idx+1}) "
           f"with {best_dqn_score:.2f}% volume used...")
     evaluate_agent_on_episode(
         agent,
@@ -106,28 +106,6 @@ def main():
         env_seed=SEED + best_dqn_idx,
         generate_gif=True,
         gif_name=f"runs/agent_best_ep{best_dqn_idx}.gif",
-    )
-
-    # 5) Extra: side-by-side comparison on the SAME episode
-    COMPARE_IDX = 0  # or pick any fixed index you want to visualize
-    print(f"\n🆚 Generating comparison GIFs for episode {COMPARE_IDX} "
-          f"(both agent and heuristic on identical boxes)...")
-
-    print(test_sets[COMPARE_IDX])
-
-    evaluate_heuristic_on_episode(
-        test_sets[COMPARE_IDX],
-        env_seed=SEED + COMPARE_IDX,
-        generate_gif=True,
-        gif_name=f"runs/heuristic_compare_ep{COMPARE_IDX}.gif",
-    )
-
-    evaluate_agent_on_episode(
-        agent,
-        test_sets[COMPARE_IDX],
-        env_seed=SEED + COMPARE_IDX,
-        generate_gif=True,
-        gif_name=f"runs/agent_compare_ep{COMPARE_IDX}.gif",
     )
 
 if __name__ == "__main__":
