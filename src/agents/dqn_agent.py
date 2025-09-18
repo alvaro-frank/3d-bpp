@@ -79,7 +79,7 @@ class DQNAgent:
 
         self.temperature_start = 1.0
         self.temperature_final = 0.1
-        self.temperature_decay_steps = 20000
+        self.temperature_decay_steps = 100000
         self.temperature = self.temperature_start
 
     def get_action(self, state, action_space, mask: np.ndarray = None):

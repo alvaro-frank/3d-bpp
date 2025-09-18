@@ -29,7 +29,7 @@ def train_dqn_agent(
     """
     
     # Initialize environment and agent
-    env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes)
+    env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, include_noop=False)
     state = env.reset()
     state_dim = env.observation_space.shape[0] # number of features in the state
     action_dim = len(env.discrete_actions) # total number of discrete actions

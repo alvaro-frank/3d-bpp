@@ -26,6 +26,7 @@ def generate_boxes(bin_size, num_items=64, seed=None, structured=True):
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
+    
 
     if structured:
         # recursive splitting method

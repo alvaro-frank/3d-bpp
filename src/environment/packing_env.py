@@ -20,7 +20,7 @@ class PackingEnv(gym.Env):
     It manages the bin size, the boxes to be packed, and the current state of the environment
     It provides methods to reset the environment, step through actions, and render the current state.
     """
-    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=10, generate_gif=False, gif_name="packing_dqn_agent.gif"):
+    def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=10, generate_gif=False, gif_name="packing_dqn_agent.gif", include_noop=False):
         """
         Initializes the packing environment with a bin size, maximum number of boxes, and options for GIF generation.
         
@@ -51,12 +51,18 @@ class PackingEnv(gym.Env):
         self.frame_count = 0
         self.frames = []
 
+        self.include_noop = include_noop
+
         if self.generate_gif:
             os.makedirs(self.gif_dir, exist_ok=True)
 
         self.discrete_actions = generate_discrete_actions(self.bin_size[0], self.bin_size[1])
-        self.NOOP_IDX = len(self.discrete_actions)
-        self.discrete_actions.append(("noop",))  # marcador do NO-OP
+        if self.include_noop:
+            self.NOOP_IDX = len(self.discrete_actions)
+            self.discrete_actions.append(("noop"))
+        else:
+            self.NOOP_IDX = None
+
         self.action_space = gym.spaces.Discrete(len(self.discrete_actions))
 
         # Observation space
@@ -120,6 +126,10 @@ class PackingEnv(gym.Env):
                 shutil.rmtree(self.gif_dir)
             os.makedirs(self.gif_dir, exist_ok=True)
 
+        # 7.2 sanity da máscara
+        m = self.valid_action_mask()
+        assert m.shape[0] == self.action_space.n
+
         return self._get_obs()
 
     def _get_obs(self):
@@ -137,6 +147,8 @@ class PackingEnv(gym.Env):
         for b in self.bin.boxes:
             x, y, z = b.position
             bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
+            assert x + bw <= self.bin.width and y + bd <= self.bin.depth, \
+                f"Box fora dos limites no _get_obs: (x={x},y={y}) + (bw={bw},bd={bd}) vs (W={self.bin.width},D={self.bin.depth})"
             for dx in range(bw):
                 for dy in range(bd):
                     heightmap[x + dx, y + dy] = max(heightmap[x + dx, y + dy], z + bh)
@@ -187,9 +199,9 @@ class PackingEnv(gym.Env):
                   f.write(msg + "\n")
 
         log(f"Step {self.current_step}")
-
-        if action_idx == self.NOOP_IDX:
-            reward = -0.005  # pequena penalização para não abusar do noop
+        
+        if self.include_noop and action_idx == self.NOOP_IDX:
+            reward = 0.0  # pequena penalização para não abusar do noop
             info = {"success": False, "noop": True}
             self.skipped_boxes.append(self.current_box)
             self.current_step += 1
@@ -213,14 +225,14 @@ class PackingEnv(gym.Env):
         # If placement failed
         if not success:
             log("    Box misplaced (ignored in simple version)")
-            reward = -0.01
+            reward = 0.0
             self.skipped_boxes.append(self.current_box)
         # If placement succeeded
         else:
             new_compactness = self.calculate_compactness(self.bin.boxes)
             delta_compactness = new_compactness - prev_compactness
 
-            reward = delta_compactness
+            reward = 0.0
 
             if self.generate_gif:
                 frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
@@ -392,16 +404,16 @@ class PackingEnv(gym.Env):
         rot = int(rot) % 6
         if rot == 0:   # (w,d,h)
             return w0, d0, h0
-        if rot == 1:   # (d,w,h)
-            return d0, w0, h0
-        if rot == 2:   # (w,h,d)
+        if rot == 1:   # (w,h,d)
             return w0, h0, d0
-        if rot == 3:   # (h,w,d)
-            return h0, w0, d0
+        if rot == 2:   # (d,w,h)
+            return d0, w0, h0
+        if rot == 3:   # (h,d,w)
+            return h0, d0, d0
         if rot == 4:   # (d,h,w)
             return d0, h0, w0
-        if rot == 5:   # (h,d,w)
-            return h0, d0, w0
+        if rot == 5:   # (h,w,d)
+            return h0, w0, d0
         
         return w0, d0, h0
 
@@ -471,7 +483,8 @@ class PackingEnv(gym.Env):
 
         if self.current_box is None:
             # ainda assim, manter NO-OP válido para evitar all-zero
-            mask[self.NOOP_IDX] = 1.0
+            if self.include_noop:
+                mask[self.NOOP_IDX] = 1.0
             return mask
 
         # Iterar só pelas ações de colocação (excluir NO-OP)
@@ -510,7 +523,8 @@ class PackingEnv(gym.Env):
             mask[idx] = 1.0
 
         # Garante que nunca é all-zero: ativa NO-OP quando não há mais nada
-        mask[self.NOOP_IDX] = 1.0 if mask.sum() == 0 else 0.0
+        if self.include_noop and mask.sum() == 0:
+            mask[self.NOOP_IDX] = 1.0
         return mask
 
     def current_max_height(self):

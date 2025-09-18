@@ -26,7 +26,7 @@ def train_ppo_agent(num_episodes: int, max_boxes: int, generate_gif: bool = Fals
     Mantém a “interface” do DQN: devolve um objeto com get_action(...).
     """
     # Instancia ambiente como no teu setup (ajusta args conforme o teu PackingEnv)
-    env = PackingEnv(max_boxes=max_boxes)
+    env = PackingEnv(max_boxes=max_boxes, include_noop=True)
 
     # Inferir dimensões
     obs = env.reset()
@@ -85,7 +85,7 @@ def main():
 
     # 0) Seeding global
     SEED = 42
-    N_EPISODES = 100
+    N_EPISODES = 5000
     N_TESTS = 20
     N_BOXES = 50
     seed_all(SEED)

@@ -22,7 +22,8 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
         bin_size=(10, 10, 10),
         max_boxes=len(episode_boxes),
         generate_gif=generate_gif,
-        gif_name=gif_name
+        gif_name=gif_name,
+        include_noop=True
     )
 
     # Reset env with predetermined boxes
@@ -31,6 +32,9 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
     # Backup epsilon and force greedy policy
     epsilon_backup = getattr(agent, "epsilon", None)
     agent.epsilon = 0.0
+
+    temperature_backup = getattr(agent, "temperature", None)
+    agent.temperature = 0.0
 
     total_reward = 0.0
     done = False
@@ -44,6 +48,9 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
     # Restore epsilon after eval
     if epsilon_backup is not None:
         agent.epsilon = epsilon_backup
+
+    if temperature_backup is not None:
+        agent.temperature = temperature_backup
 
     # Compute utilization percentage
     volume_used = env.get_placed_boxes_volume()
