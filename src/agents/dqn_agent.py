@@ -98,51 +98,83 @@ class DQNAgent:
         - int: chosen action index
         """
         state_tensor = torch.from_numpy(np.asarray(state, dtype=np.float32)).unsqueeze(0).to(self.device)
-        
+
+        # Atualização de temperatura (softmax) e epsilon (epsilon-greedy)
         frac_T = min(1.0, self.global_step / self.temperature_decay_steps)
         self.temperature = self.temperature_start + frac_T * (self.temperature_final - self.temperature_start)
 
-        # Update epsilon linearly with steps
-        fraction = min(1.0, self.global_step / self.epsilon_decay_steps) 
+        fraction = min(1.0, self.global_step / self.epsilon_decay_steps)
         self.epsilon = self.epsilon_start + fraction * (self.epsilon_final - self.epsilon_start)
 
         self.global_step += 1
 
-         # --- Exploração epsilon-greedy ---
+        # --- Normalização da máscara ---
+        valid_idxs = None
+        if mask is not None:
+            m = np.asarray(mask)
+            # converter para bool robustamente
+            if m.dtype != np.bool_:
+                m = m > 0.5
+            if m.ndim != 1:
+                raise ValueError(f"Mask deve ser 1D; recebido shape={m.shape}")
+            valid_idxs = np.flatnonzero(m)
+            if valid_idxs.size == 0:
+                # fallback defensivo: sem válidas → ignora máscara
+                m = None
+                valid_idxs = None
+            mask_bool = m
+        else:
+            mask_bool = None
+
+        # --- Exploração epsilon-greedy ---
         if self.exploration == "epsilon":
             if random.random() < self.epsilon:
-                if mask is not None and mask.any():
-                    valid_idxs = np.flatnonzero(mask)
+                if valid_idxs is not None:
                     return int(np.random.choice(valid_idxs))
                 else:
-                    return action_space.sample()
+                    return int(action_space.sample())
 
             with torch.no_grad():
                 q_values = self.model(state_tensor).squeeze(0).cpu().numpy()
-            if mask is not None:
-                q_values[~mask] = -1e9
+            if mask_bool is not None:
+                q_values[~mask_bool] = -1e9
             return int(q_values.argmax())
 
         # --- Exploração Softmax ---
         elif self.exploration == "softmax":
             with torch.no_grad():
                 q_values = self.model(state_tensor).squeeze(0).cpu().numpy()
-            if mask is not None:
-                q_values[~mask] = -1e9
+            if mask_bool is not None:
+                q_values[~mask_bool] = -1e9
 
-            # Subtração para estabilidade
+            # Softmax estável
             q_shifted = q_values - np.max(q_values)
-            exp_q = np.exp(q_shifted / self.temperature)
+            # Evitar divisão por zero (temperature pode ser muito pequena)
+            temp = max(1e-6, float(self.temperature))
+            exp_q = np.exp(q_shifted / temp)
 
-            if exp_q.sum() == 0 or np.isnan(exp_q.sum()):
-                # fallback: escolher ação válida aleatória
-                if mask is not None and mask.any():
-                    return int(np.random.choice(np.flatnonzero(mask)))
+            # Se deu under/overflow e a soma ficou inválida, faz fallback
+            s = exp_q.sum()
+            if not np.isfinite(s) or s <= 0:
+                if valid_idxs is not None:
+                    return int(np.random.choice(valid_idxs))
                 else:
-                    return action_space.sample()
+                    return int(action_space.sample())
 
-            probs = exp_q / exp_q.sum()
+            probs = exp_q / s
+
+            # Se houver máscara, zera probs inválidas e renormaliza
+            if mask_bool is not None:
+                probs = probs * mask_bool.astype(np.float32)
+                ps = probs.sum()
+                if ps <= 0 or not np.isfinite(ps):
+                    # fallback
+                    return int(np.random.choice(valid_idxs))
+                probs = probs / ps
+
             return int(np.random.choice(len(q_values), p=probs))
+        else:
+            raise ValueError(f"Exploration mode desconhecido: {self.exploration}")
 
     def store_transition(self, state, action_idx, reward, next_state, done):
         """

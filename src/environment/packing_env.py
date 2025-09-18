@@ -55,6 +55,8 @@ class PackingEnv(gym.Env):
             os.makedirs(self.gif_dir, exist_ok=True)
 
         self.discrete_actions = generate_discrete_actions(self.bin_size[0], self.bin_size[1])
+        self.NOOP_IDX = len(self.discrete_actions)
+        self.discrete_actions.append(("noop",))  # marcador do NO-OP
         self.action_space = gym.spaces.Discrete(len(self.discrete_actions))
 
         # Observation space
@@ -134,21 +136,18 @@ class PackingEnv(gym.Env):
         heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
         for b in self.bin.boxes:
             x, y, z = b.position
-            bw, bd, bh = b.rotate(b.rotation_type)
+            bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
             for dx in range(bw):
                 for dy in range(bd):
-                    heightmap[x + dx, y + dy] = max(
-                        heightmap[x + dx, y + dy], z + bh
-                    )
+                    heightmap[x + dx, y + dy] = max(heightmap[x + dx, y + dy], z + bh)
         heightmap = heightmap.flatten() / self.bin.height  # normalize 0..1
 
         # 2) Upcoming box sizes
         upcoming = []
         if self.current_step < self.max_boxes:
-          for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
-              b = self.boxes[i]
-              upcoming.extend([b.width, b.depth, b.height])
-        # Pad if fewer than lookahead boxes left
+            for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
+                b = self.boxes[i]
+                upcoming.extend([b.width, b.depth, b.height])
         while len(upcoming) < self.lookahead * 3:
             upcoming.extend([0, 0, 0])
         upcoming = np.array(upcoming, dtype=np.float32)
@@ -157,13 +156,11 @@ class PackingEnv(gym.Env):
         stats = np.array([
             (self.max_boxes - self.current_step) / self.max_boxes,   # remaining ratio
             self.get_placed_boxes_volume() / self.bin.bin_volume(),  # utilization
-            #self.calculate_compactness(),                           # compactness
-            self.current_max_height() / self.bin.height             # normalized max height
+            self.current_max_height() / self.bin.height              # normalized max height
         ], dtype=np.float32)
 
         obs = np.concatenate([heightmap, upcoming, stats])
 
-        # Final state
         return obs
 
     def step(self, action_idx, log_file=None, pos_file=None):
@@ -190,6 +187,23 @@ class PackingEnv(gym.Env):
                   f.write(msg + "\n")
 
         log(f"Step {self.current_step}")
+
+        if action_idx == self.NOOP_IDX:
+            reward = -0.005  # pequena penalização para não abusar do noop
+            info = {"success": False, "noop": True}
+            self.skipped_boxes.append(self.current_box)
+            self.current_step += 1
+            done = self.current_step >= self.max_boxes
+            if done:
+                reward = 10 * self.calculate_utilization_ratio()
+                log(f"    Episode ended (noop), utilization = {reward:.2f}")
+                finalize_gif(self.gif_dir, self.gif_name, fps=2)
+                obs = np.zeros(self._obs_length(), dtype=np.float32)
+            else:
+                self.current_box = self.boxes[self.current_step]
+                obs = self._get_obs()
+            return obs, reward, done, info
+
         x, y, rot = self.discrete_actions[action_idx] # get position and rotation from action index
 
         prev_compactness = self.calculate_compactness(self.bin.boxes)
@@ -199,14 +213,14 @@ class PackingEnv(gym.Env):
         # If placement failed
         if not success:
             log("    Box misplaced (ignored in simple version)")
-            reward = 0.0
+            reward = -0.01
             self.skipped_boxes.append(self.current_box)
         # If placement succeeded
         else:
             new_compactness = self.calculate_compactness(self.bin.boxes)
             delta_compactness = new_compactness - prev_compactness
 
-            reward = 0.0
+            reward = delta_compactness
 
             if self.generate_gif:
                 frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
@@ -369,8 +383,30 @@ class PackingEnv(gym.Env):
 
         return reward
 
+    
+
+    def dims_after_rotation(self, box, rot):
+        """Devolve (w, d, h) SEM alterar o estado da box."""
+        w0, d0, h0 = box.width, box.depth, box.height
+        # adapta isto à tua convenção de rotações; exemplo comum:
+        rot = int(rot) % 6
+        if rot == 0:   # (w,d,h)
+            return w0, d0, h0
+        if rot == 1:   # (d,w,h)
+            return d0, w0, h0
+        if rot == 2:   # (w,h,d)
+            return w0, h0, d0
+        if rot == 3:   # (h,w,d)
+            return h0, w0, d0
+        if rot == 4:   # (d,h,w)
+            return d0, h0, w0
+        if rot == 5:   # (h,d,w)
+            return h0, d0, w0
+        
+        return w0, d0, h0
+
+    """
     def valid_action_mask(self):
-        """
         Build a mask (boolean array) that indicates which actions are valid 
         for placing the current box in the current state of the bin.
 
@@ -380,7 +416,6 @@ class PackingEnv(gym.Env):
 
         This method uses deep copies of the bin and box to test placements safely,
         ensuring the real environment state is not modified.
-        """
         
         # Initialize all actions as invalid
         mask = np.zeros(self.action_space.n, dtype=bool)
@@ -393,7 +428,7 @@ class PackingEnv(gym.Env):
             w, d, h = self.current_box.rotate(rot)
 
             # 2) Quick bounds check (X, Y, Z)
-            if (x + w > self.bin.width) or (y + d > self.bin.depth):
+            if (x + w > self.bin.width) or (y + d > self.bin.height):
                 continue
 
             # Compute placement height (z) for this (x,y)
@@ -410,8 +445,8 @@ class PackingEnv(gym.Env):
                 bw, bd, bh = b.rotate(b.rotation_type)
 
                 overlap_x = not (x + w <= bx or x >= bx + bw)
-                overlap_y = not (y + h <= by or y >= by + bh)
-                overlap_z = not (z + d <= bz or z >= bz + bd)
+                overlap_y = not (y + d <= by or y >= by + bd)
+                overlap_z = not (z + h <= bz or z >= bz + bh)
 
                 if overlap_x and overlap_y and overlap_z:
                     collision = True
@@ -423,6 +458,59 @@ class PackingEnv(gym.Env):
             # If all checks passed, mark action as valid
             mask[idx] = True
 
+        return mask
+        """
+
+    def valid_action_mask(self):
+        """
+        Máscara binária de ações válidas. Se nenhuma colocação é possível,
+        garante NO-OP válido (último índice).
+        """
+        act_n = self.action_space.n
+        mask = np.zeros(act_n, dtype=np.float32)
+
+        if self.current_box is None:
+            # ainda assim, manter NO-OP válido para evitar all-zero
+            mask[self.NOOP_IDX] = 1.0
+            return mask
+
+        # Iterar só pelas ações de colocação (excluir NO-OP)
+        for idx, action in enumerate(self.discrete_actions[:-1]):
+            x, y, rot = action
+            w, d, h = self.dims_after_rotation(self.current_box, rot)
+
+            # 1) limites no plano (x,y)
+            if (x + w > self.bin.width) or (y + d > self.bin.depth):
+                continue
+
+            # 2) z mínimo
+            z = self.bin.find_lowest_z((w, d, h), x, y)
+
+            # 3) limite vertical (altura)
+            if z + h > self.bin.height:
+                continue
+
+            # 4) colisão AABB com caixas já colocadas
+            collision = False
+            for b in self.bin.boxes:
+                bx, by, bz = b.position
+                bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
+
+                overlap_x = not (x + w <= bx or x >= bx + bw)  # largura
+                overlap_y = not (y + d <= by or y >= by + bd)  # profundidade
+                overlap_z = not (z + h <= bz or z >= bz + bh)  # altura
+
+                if overlap_x and overlap_y and overlap_z:
+                    collision = True
+                    break
+
+            if collision:
+                continue
+
+            mask[idx] = 1.0
+
+        # Garante que nunca é all-zero: ativa NO-OP quando não há mais nada
+        mask[self.NOOP_IDX] = 1.0 if mask.sum() == 0 else 0.0
         return mask
 
     def current_max_height(self):
@@ -439,4 +527,4 @@ class PackingEnv(gym.Env):
         if not self.bin.boxes:
             return 0.0
         # Z-top = bottom z-position + rotated height (depends on box orientation)
-        return max(b.position[2] + b.rotate(b.rotation_type)[2] for b in self.bin.boxes)
+        return max(b.position[2] + self.dims_after_rotation(b, b.rotation_type)[2] for b in self.bin.boxes)
