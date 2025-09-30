@@ -1,0 +1,5 @@
+numpy==1.26.4
+torch==2.2.2
+gym==0.26.2
+matplotlib==3.8.4
+imageio==2.34.1
