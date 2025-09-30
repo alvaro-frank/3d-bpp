@@ -332,6 +332,3 @@ def sanity_check_mask(env, episodes=5):
                 done = bool(term or trunc)
             else:
                 obs, r, done, info = step_out
-    print("Problemas:", problems)
-    print("Ações válidas por step (min/mean/max):",
-          np.min(counts_valid), np.mean(counts_valid), np.max(counts_valid))
