@@ -23,7 +23,7 @@ class Bin:
         """
         Checks if a box fits inside the bin boundaries.
         
-        Parameters:
+        Args:
         - box_dims (tuple): (width, depth, height)
         - position (tuple): (x, y, z) inside the bin
 
@@ -40,7 +40,7 @@ class Bin:
         """
         Checks if a box collides with any existing boxes.
         
-        Parameters:
+        Args:
         - box_dims (tuple): (width, depth, height)
         - position (tuple): (x, y, z)
 
@@ -66,7 +66,7 @@ class Bin:
         """
         Attempt to place a box at (x,y) with lowest z possible.
         
-        Parameters:
+        Args:
         - box (Box)
         - position (tuple): (x, y) base position
         - rotation_type (int): rotation index
@@ -97,7 +97,7 @@ class Bin:
         Finds the lowest Z (height) where a box can be placed at (x,y).
         It checks stacking over other boxes.
         
-        Parameters:
+        Args:
         - box_dims (tuple): (width, depth, height)
         - x (int), y (int): X and Y base positions
 

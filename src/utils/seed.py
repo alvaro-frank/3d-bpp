@@ -6,7 +6,7 @@ def seed_all(seed: int, deterministic_torch: bool = True):
     Set seeds for ALL random number generators used across Python, NumPy, and PyTorch
     to ensure reproducible results.
 
-    Parameters:
+    Args:
     - seed (int): the seed value to apply
     - deterministic_torch (bool): if True, enforce deterministic behavior in PyTorch
       (may reduce speed but guarantees reproducibility)

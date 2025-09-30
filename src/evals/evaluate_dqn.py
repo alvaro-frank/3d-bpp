@@ -8,7 +8,7 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
     - Uses action masking to avoid invalid placements.
     - Optionally generates a GIF of the packing process.
 
-    Parameters:
+    Args:
     - agent (DQNAgent): trained agent
     - episode_boxes (list[dict]): list of boxes with dimensions (w, h, d)
     - env_seed (int, optional): seed for reproducibility

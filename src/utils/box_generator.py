@@ -7,7 +7,7 @@ def generate_boxes(bin_size, num_items=64, seed=None, structured=True):
     Generate a list of boxes either by structured recursive splitting
     or purely random sampling.
 
-    Parameters
+    Args:
     ----------
     bin_size : list[int]
         Dimensions of the bin (width, depth, height).

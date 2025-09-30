@@ -15,27 +15,32 @@ from heuristics.heuristic import heuristic_blb_packing
 from utils.seed import seed_all
 from environment.box import Box
 
-# --- PPO imports ---
 from agents.ppo_agent import PPOAgent, PPOConfig
 from train.train_ppo_agent import train_ppo_agent as ppo_train_loop, TrainPPOConfig
 
 
 def train_ppo_agent(num_episodes: int, max_boxes: int, generate_gif: bool = False):
     """
-    Treina o MaskablePPO no mesmo ambiente usado pelo DQN e devolve o agente treinado.
-    Mantém a “interface” do DQN: devolve um objeto com get_action(...).
+    Train a PPO agent on the same environment used by DQN and return the trained agent.
+
+    Keeps a DQN-like interface (i.e., the returned object exposes get_action(...)).
+
+    Args:
+        num_episodes (int): Number of PPO training episodes.
+        max_boxes (int): Number of boxes per episode in the environment.
+        generate_gif (bool): If True, environment will store frames/GIFs during training.
+
+    Returns:
+        PPOAgent: Trained PPO agent ready for evaluation.
     """
-    # Instancia ambiente como no teu setup (ajusta args conforme o teu PackingEnv)
     env = PackingEnv(max_boxes=max_boxes, include_noop=True)
 
-    # Inferir dimensões
     obs = env.reset()
-    if isinstance(obs, tuple):  # gymnasium
+    if isinstance(obs, tuple):
         obs, _ = obs
     obs_dim = int(np.prod(np.asarray(obs).shape))
     act_dim = env.action_space.n if hasattr(env, "action_space") else len(getattr(env, "discrete_actions", []))
 
-    # Config PPO (defaults estáveis)
     ppo_cfg = PPOConfig(
         gamma=0.99,
         gae_lambda=0.95,
@@ -49,10 +54,9 @@ def train_ppo_agent(num_episodes: int, max_boxes: int, generate_gif: bool = Fals
     )
     agent = PPOAgent(obs_dim=obs_dim, act_dim=act_dim, config=ppo_cfg)
 
-    # Treino
     train_cfg = TrainPPOConfig(
         num_episodes=num_episodes,
-        max_steps_per_episode=None,  # usa o limite do env
+        max_steps_per_episode=None, 
         log_every=10,
         eval_every=0,
         eval_episodes=5,
@@ -71,26 +75,32 @@ def train_ppo_agent(num_episodes: int, max_boxes: int, generate_gif: bool = Fals
 
 def main():
     """
-    Main script:
-    1. Treinar agente (DQN por omissão, ou PPO se selecionado).
-    2. Gerar ou carregar test sets fixos para reprodutibilidade.
-    3. Avaliar agente vs heurística nos mesmos test sets.
-    4. Reportar médias e regenerar GIFs dos melhores episódios.
+    End-to-end pipeline: train → generate/load fixed test sets → evaluate vs heuristic → export best GIFs.
+
+    Steps:
+        1) Train selected agent (DQN by default; PPO if specified).
+        2) Generate or load fixed test sets (same episodes for all methods).
+        3) Evaluate agent vs. heuristic on the same test sets.
+        4) Report averages and regenerate GIFs for the best episodes.
+
+    Command line:
+        python main.py [dqn_agent|ppo_agent]
+
+    Notes:
+        - The same seed/test sets ensure reproducibility and fair comparison.
+        - GIFs for the best heuristic and agent episodes are saved under `runs/`.
     """
-    # ---- CLI: escolher agente ----
     parser = argparse.ArgumentParser(description="Treino e avaliação 3D-BPP")
     parser.add_argument("agent", nargs="?", default="dqn_agent", choices=["dqn_agent", "ppo_agent"],
                         help="Agente a treinar: dqn_agent (default) ou ppo_agent")
     args = parser.parse_args()
 
-    # 0) Seeding global
     SEED = 42
     N_EPISODES = 5000
     N_TESTS = 20
     N_BOXES = 50
     seed_all(SEED)
 
-    # 1) Treino do agente
     if args.agent == "dqn_agent":
         print("📦 Training DQN Agent...")
         agent = train_dqn_agent(num_episodes=N_EPISODES, max_boxes=N_BOXES, generate_gif=False)
@@ -98,7 +108,6 @@ def main():
         print("📦 Training PPO Agent...")
         agent = train_ppo_agent(num_episodes=N_EPISODES, max_boxes=N_BOXES, generate_gif=False)
 
-    # 2) Test sets fixos (iguais para ambos métodos)
     out_dir = Path("runs")
     out_dir.mkdir(parents=True, exist_ok=True)
     test_path = out_dir / f"test_sets_seed{SEED}.json"
@@ -112,13 +121,11 @@ def main():
             n_boxes=N_BOXES,
             box_ranges={"w_min": 1, "w_max": 5, "d_min": 1, "d_max": 5, "h_min": 1, "h_max": 5},
         )
-        # save_test_sets(str(test_path), test_sets)
 
-    # 3) Avaliação DQN/PPO vs heurística nos mesmos episódios
     print("\n🤖 Evaluating Agent vs Heuristic:")
     agent_scores = []
     heuristic_scores = []
-    best_agent = (-1.0, None)  # (melhor score, idx)
+    best_agent = (-1.0, None) 
     best_heur = (-1.0, None)
 
     for i, episode_boxes in enumerate(test_sets):
@@ -147,11 +154,9 @@ def main():
 
         print(f"Test {i+1}: Agent = {agent_score:.2f}%, Heuristic = {heur_score:.2f}%")
 
-    # Médias
     print("\n📊 Agent Avg:", float(np.mean(agent_scores)))
     print("📊 Heuristic Avg:", float(np.mean(heuristic_scores)))
 
-    # 4) Regenerar GIFs para os melhores episódios
     best_heur_score, best_heur_idx = best_heur
     best_agent_score, best_agent_idx = best_agent
 

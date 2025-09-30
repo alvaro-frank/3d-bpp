@@ -7,7 +7,7 @@ def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
     """
     Create deterministic test sets for reproducible evaluation.
 
-    Parameters:
+    Args:
     - seed (int): RNG seed for reproducibility
     - n_episodes (int): number of episodes to generate
     - n_boxes (int): number of boxes per episode

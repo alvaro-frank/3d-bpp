@@ -5,12 +5,11 @@ class Box:
     The box can be rotated in 6 different orientations.
     The position in the bin is stored as a tuple (x, y, z).
     """
-
     def __init__(self, width, depth, height, id=None):
         """
         Initializes a box with given width, depth, height.
 
-        Parameters:
+        Args:
         - width (int): size of the box along the X-axis
         - depth (int): size of the box along the Y-axis
         - height (int): size of the box along the Z-axis
@@ -30,7 +29,7 @@ class Box:
         """
         Place the box at a specific position inside the bin.
 
-        Parameters:
+        Args:
         - x (int): position along the bin's X-axis
         - y (int): position along the bin's Y-axis
         - z (int): position along the bin's Z-axis
@@ -42,7 +41,7 @@ class Box:
         Rotate the box into one of 6 possible orientations.
         Each orientation swaps (width=X, depth=Y, height=Z).
 
-        Parameters:
+        Args:
         - rotation_type (int): rotation index [0–5]
 
         Returns:

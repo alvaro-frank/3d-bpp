@@ -17,7 +17,7 @@ def train_dqn_agent(
     """
     Train a DQN agent on the 3D Bin Packing Problem environment.
 
-    Parameters:
+    Args:
     - num_episodes (int): number of training episodes
     - bin_size (tuple): dimensions of the bin (width, height, depth)
     - max_boxes (int): number of boxes per episode

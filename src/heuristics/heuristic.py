@@ -14,7 +14,7 @@ def heuristic_blb_packing(bin_size, boxes, try_rotations=False, generate_gif=Fal
     - Optionally test all 6 possible rotations of each box.
     - Iterate over candidate (x, y) positions until a feasible placement is found.
 
-    Parameters:
+    Args:
     - bin_size (tuple): (width, height, depth) of the bin
     - boxes (list[Box]): list of Box objects to be packed
     - try_rotations (bool): if True, try all 6 orientations of each box

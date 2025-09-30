@@ -10,7 +10,7 @@ def evaluate_heuristic_on_episode(episode_boxes, env_seed=None, generate_gif=Fal
     - Uses a bottom-left-back heuristic with optional rotations.
     - Optionally generates a GIF of the packing process.
 
-    Parameters:
+    Args:
     - episode_boxes (list[dict]): list of boxes with dimensions (w, h, d)
     - env_seed (int, optional): seed for reproducibility
     - generate_gif (bool): whether to record GIF

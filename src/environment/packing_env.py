@@ -16,19 +16,27 @@ from utils.box_generator import generate_boxes
 
 class PackingEnv(gym.Env):
     """
-    Represents a packing environment where boxes are placed inside a bin.
-    It manages the bin size, the boxes to be packed, and the current state of the environment
-    It provides methods to reset the environment, step through actions, and render the current state.
+    3D bin packing environment.
+
+    Boxes are placed inside a fixed-size bin using discrete (x, y, rotation) actions.
+    The environment manages the bin, a queue of boxes, observation construction,
+    step transitions, and optional GIF rendering of the packing process.
     """
     def __init__(self, bin_size=(10, 10, 10), max_boxes=5, lookahead=10, generate_gif=False, gif_name="packing_dqn_agent.gif", include_noop=False):
         """
-        Initializes the packing environment with a bin size, maximum number of boxes, and options for GIF generation.
-        
-        Parameters:
-        - bin_size (tuple): dimensions of the bin (width, height, depth)
-        - max_boxes (int): maximum number of boxes to pack in the bin
-        - generate_gif (bool): whether to generate a GIF of the packing process
-        - gif_name (str): name of the generated GIF file
+        Initialize the environment.
+
+        Args:
+            bin_size (tuple[int, int, int]): Bin dimensions (width, depth, height).
+            max_boxes (int): Number of boxes to attempt to pack per episode.
+            lookahead (int): How many upcoming boxes to encode in the observation (triplets of w,d,h).
+            generate_gif (bool): If True, saves frames and builds a GIF of the episode.
+            gif_name (str): Output GIF filename.
+            include_noop (bool): If True, include a NO-OP action as the last discrete action.
+
+        Notes:
+            - Action space is Discrete over (x, y, rotation) plus optional NO-OP.
+            - Observation is a flat vector: heightmap + upcoming boxes + global stats.
         """
         self.bin_size = bin_size
         self.max_boxes = max_boxes
@@ -75,7 +83,10 @@ class PackingEnv(gym.Env):
 
     def _obs_length(self):
         """
-        Return the length of the observation vector (for observation_space).
+        Compute observation vector length.
+
+        Returns:
+            int: Length = (width*depth) heightmap + (lookahead*3) upcoming dims + 3 global stats.
         """
         width, depth, height = self.bin_size
 
@@ -88,14 +99,14 @@ class PackingEnv(gym.Env):
 
     def reset(self, seed=None, with_boxes=None):
         """
-        Resets the environment to its initial state.
-        
-        Parameters:
-        - seed (int): random seed for reproducibility
-        - with_boxes (list): optional list of boxes to place in the bin at reset
-        
+        Reset the environment to the start of a new episode.
+
+        Args:
+            seed (int | None): Optional RNG seed for reproducibility.
+            with_boxes (list[dict] | None): Optional fixed boxes, each as {'w','d','h'}.
+
         Returns:
-        - np.ndarray: initial observation of the environment
+            np.ndarray: Initial observation vector.
         """
         if seed is not None:
             random.seed(seed)
@@ -126,7 +137,6 @@ class PackingEnv(gym.Env):
                 shutil.rmtree(self.gif_dir)
             os.makedirs(self.gif_dir, exist_ok=True)
 
-        # 7.2 sanity da máscara
         m = self.valid_action_mask()
         assert m.shape[0] == self.action_space.n
 
@@ -134,13 +144,19 @@ class PackingEnv(gym.Env):
 
     def _get_obs(self):
         """
-        Builds the state representation:
-        - Heightmap: flattened 2D array of current max heights (width × depth).
-        - Upcoming box sizes: dimensions of the current box (optionally with lookahead).
-        - Global stats: remaining boxes, utilization, compactness, max height.
+        Build the observation vector.
+
+        Composition:
+            1) Heightmap (width×depth), normalized to [0,1] by bin height.
+            2) Upcoming box sizes: triplets (w,d,h) for current → lookahead;
+               padded with zeros to length lookahead*3.
+            3) Global stats:
+               - remaining_ratio: (max_boxes - current_step)/max_boxes
+               - utilization: placed_volume / bin_volume
+               - normalized_max_height: current_max_height / bin.height
 
         Returns:
-        - np.ndarray: state vector for the agent.
+            np.ndarray: Flattened observation.
         """
         # 1) Heightmap encoding (width × depth)
         heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
@@ -177,22 +193,24 @@ class PackingEnv(gym.Env):
 
     def step(self, action_idx, log_file=None, pos_file=None):
         """
-        Steps through the environment with a given action.
-        Attempts to place the current box at the specified position and rotation.
-        If successful, it updates the state and returns the new observation, reward, done flag, and info.
-        If the placement fails, it applies a small penalty and skips to the next box.
-        
-        Parameters:
-        - action_idx (int): index of the action to take, corresponding to a position and rotation
-        
-        Returns:
-        - tuple: (observation, reward, done, info)
-        - observation (np.ndarray): the new state of the environment
-        - reward (float): the reward received for the action
-        - done (bool): whether the episode has ended
-        - info (dict): additional information about the step, such as success or failure of placement
-        """
+        Apply a discrete action (x, y, rotation) or NO-OP and advance the environment.
 
+        Args:
+            action_idx (int): Index in the discrete action set.
+            log_file (str | None): Optional file to append step logs.
+            pos_file (str | None): Optional file to append placements (positions/rotations).
+
+        Returns:
+            tuple:
+                - observation (np.ndarray): Next observation.
+                - reward (float): Reward for this step (terminal bonus at episode end).
+                - done (bool): Whether the episode is finished.
+                - info (dict): Extra info (e.g., success flag, noop flag).
+
+        Notes:
+            - On successful placement, the box is added and an intermediate reward may be applied.
+            - On failure or NO-OP, the box is skipped. Terminal reward adds a utilization bonus.
+        """
         def log(msg: str):
           if log_file:
               with open(log_file, "a") as f:
@@ -201,7 +219,7 @@ class PackingEnv(gym.Env):
         log(f"Step {self.current_step}")
         
         if self.include_noop and action_idx == self.NOOP_IDX:
-            reward = 0.0  # pequena penalização para não abusar do noop
+            reward = 0.0 
             info = {"success": False, "noop": True}
             self.skipped_boxes.append(self.current_box)
             self.current_step += 1
@@ -216,11 +234,11 @@ class PackingEnv(gym.Env):
                 obs = self._get_obs()
             return obs, reward, done, info
 
-        x, y, rot = self.discrete_actions[action_idx] # get position and rotation from action index
+        x, y, rot = self.discrete_actions[action_idx]
 
         prev_compactness = self.calculate_compactness(self.bin.boxes)
 
-        success = self.bin.place_box(self.current_box, (x, y), rot) # check if placement is valid
+        success = self.bin.place_box(self.current_box, (x, y), rot)
 
         # If placement failed
         if not success:
@@ -272,20 +290,22 @@ class PackingEnv(gym.Env):
 
     def render(self):
         """
-        Render the current state of the bin in text format (console output).
-
-        Prints:
-        - The number of boxes placed so far
-        - The position and rotation of each placed box
+        Print a simple text rendering of placed boxes (ID, position, rotation).
         """
-        print(f"Placed {len(self.bin.boxes)} boxes:")
         for b in self.bin.boxes:
             # Each box shows its ID, position (x, y, z), and chosen rotation type
             print(f"Box {b.id} at {b.position}, rotated {b.rotation_type}")
 
     def _generate_boxes(self, n):
-        seed_used = random.randint(0, 10000)
-        
+        """
+        Generate a list of random boxes for the episode.
+
+        Args:
+            n (int): Number of boxes to generate.
+
+        Returns:
+            list[BinBox]: Generated boxes.
+        """
         raw_boxes = generate_boxes(self.bin_size, num_items=n, seed=random.randint(0, 10000), structured=True)
 
         boxes = [BinBox(width=w, depth=d, height=h, id=i) for i, (w, d, h) in enumerate(raw_boxes)]
@@ -294,18 +314,19 @@ class PackingEnv(gym.Env):
 
     def get_placed_boxes_volume(self):
         """
-        Calculate the total volume of all boxes currently placed in the bin.
+        Compute total volume of all currently placed boxes.
 
         Returns:
-        - float: sum of volumes of every placed box
+            float: Sum of volumes.
         """
         return sum(box.get_volume() for box in self.bin.boxes)
 
     def calculate_utilization_ratio(self):
         """
-        Compute the final reward at the end of an episode.
-        Reward = ratio of used volume to total bin volume.
-        Range [0,1].
+        Compute used-volume ratio.
+
+        Returns:
+            float: Used volume / bin volume, in [0, 1].
         """
         packed_volume = sum(b.get_volume() for b in self.bin.boxes)
         utilization = packed_volume / self.bin.bin_volume()
@@ -314,8 +335,14 @@ class PackingEnv(gym.Env):
     
     def calculate_compactness(self, boxes):
         """
-        Compactness absoluta (entre 0 e 1):
-        volume das caixas colocadas / volume do bounding box que as contém.
+        Absolute compactness in [0, 1]:
+        total placed volume / volume of their bounding box.
+
+        Args:
+            boxes (list[BinBox]): Boxes to evaluate.
+
+        Returns:
+            float: Compactness score (1.0 if ≤1 box).
         """
         if len(boxes) <= 1:
             return 1.0
@@ -336,56 +363,12 @@ class PackingEnv(gym.Env):
 
         return packed_volume / bounding_volume
 
-    def calculate_stability_reward(self, placed_box, prev_compactness):
-        """
-        Combina suporte físico (contacto com chão ou outras caixas)
-        e compactness global numa única métrica.
-        """
-
-        # ---- Parte 1: Box support (base or other boxes)
-        if placed_box.position[2] == 0:
-            r_support = 1.0
-        else:
-            support_area = 0.0
-            box_area = placed_box.width * placed_box.depth
-
-            for other in self.bin.boxes:
-                if other == placed_box:
-                    continue
-
-                # sobreposição no plano X-Y
-                overlap_x = max(0, min(placed_box.position[0] + placed_box.width,
-                                      other.position[0] + other.width) -
-                                  max(placed_box.position[0], other.position[0]))
-                overlap_y = max(0, min(placed_box.position[1] + placed_box.depth,
-                                      other.position[1] + other.depth) -
-                                  max(placed_box.position[1], other.position[1]))
-                overlap_area = overlap_x * overlap_y
-
-                if overlap_area > 0 and placed_box.position[2] == other.position[2] + other.height:
-                    support_area += overlap_area
-
-            r_support = min(1.0, support_area / box_area)
-
-        # ---- Parte 2: Compactness global
-        new_compactness = self.calculate_compactness(self.bin.boxes)
-        delta_compactness = new_compactness - prev_compactness
-        r_compact = max(-1.0, min(1.0, delta_compactness * 5.0))
-
-        # ---- Combinação (ponderada)
-        alpha, beta = 0.4, 0.6
-        r_stability = alpha * r_support + beta * r_compact
-
-        return r_stability, new_compactness
-
     def get_terminal_reward(self):
         """
-        Compute the final reward at the end of an episode.
-        Defined as the ratio of used volume to total bin volume.
+        Compute terminal reward at episode end.
 
         Returns:
-        - float: utilization score in range [0,1],
-                where 1.0 means the bin is completely filled.
+            float: 10×utilization + 5×(placed_count / max_boxes).
         """
         packed_volume = sum(b.get_volume() for b in self.bin.boxes)
         utilization = packed_volume / self.bin.bin_volume()
@@ -398,9 +381,18 @@ class PackingEnv(gym.Env):
     
 
     def dims_after_rotation(self, box, rot):
-        """Devolve (w, d, h) SEM alterar o estado da box."""
+        """
+        Return (w, d, h) after applying a rotation index, without mutating the box.
+
+        Args:
+            box (BinBox): Target box.
+            rot (int): Rotation index in [0..5].
+
+        Returns:
+            tuple[int, int, int]: Rotated dimensions (w, d, h).
+        """
         w0, d0, h0 = box.width, box.depth, box.height
-        # adapta isto à tua convenção de rotações; exemplo comum:
+        
         rot = int(rot) % 6
         if rot == 0:   # (w,d,h)
             return w0, d0, h0
@@ -417,101 +409,46 @@ class PackingEnv(gym.Env):
         
         return w0, d0, h0
 
-    """
-    def valid_action_mask(self):
-        Build a mask (boolean array) that indicates which actions are valid 
-        for placing the current box in the current state of the bin.
-
-        - Each index in the mask corresponds to a discrete action (x, y, rotation).
-        - A True value means the box can be placed there without violating constraints.
-        - A False value means the action is invalid (out of bounds or overlapping).
-
-        This method uses deep copies of the bin and box to test placements safely,
-        ensuring the real environment state is not modified.
-        
-        # Initialize all actions as invalid
-        mask = np.zeros(self.action_space.n, dtype=bool)
-
-        if self.current_box is None:
-            return mask
-
-        for idx, (x, y, rot) in enumerate(self.discrete_actions):
-            # 1) Get rotated dimensions
-            w, d, h = self.current_box.rotate(rot)
-
-            # 2) Quick bounds check (X, Y, Z)
-            if (x + w > self.bin.width) or (y + d > self.bin.height):
-                continue
-
-            # Compute placement height (z) for this (x,y)
-            z = self.bin.find_lowest_z((w, d, h), x, y)
-
-            # Depth (Z-axis) bound check
-            if z + h > self.bin.depth:
-                continue
-
-            # 3) Collision check against existing boxes
-            collision = False
-            for b in self.bin.boxes:
-                bx, by, bz = b.position
-                bw, bd, bh = b.rotate(b.rotation_type)
-
-                overlap_x = not (x + w <= bx or x >= bx + bw)
-                overlap_y = not (y + d <= by or y >= by + bd)
-                overlap_z = not (z + h <= bz or z >= bz + bh)
-
-                if overlap_x and overlap_y and overlap_z:
-                    collision = True
-                    break
-
-            if collision:
-                continue
-
-            # If all checks passed, mark action as valid
-            mask[idx] = True
-
-        return mask
-        """
-
     def valid_action_mask(self):
         """
-        Máscara binária de ações válidas. Se nenhuma colocação é possível,
-        garante NO-OP válido (último índice).
+        Build a binary mask over actions indicating which placements are valid.
+
+        Rules:
+            - Checks bounds on (x, y) and height (z + h ≤ bin.height).
+            - Uses AABB overlap tests against already placed boxes.
+            - If no placement is valid and NO-OP is enabled, NO-OP is set valid.
+
+        Returns:
+            np.ndarray: Float mask of shape (action_space.n,) with 1.0 for valid, 0.0 for invalid.
         """
         act_n = self.action_space.n
         mask = np.zeros(act_n, dtype=np.float32)
 
         if self.current_box is None:
-            # ainda assim, manter NO-OP válido para evitar all-zero
             if self.include_noop:
                 mask[self.NOOP_IDX] = 1.0
             return mask
 
-        # Iterar só pelas ações de colocação (excluir NO-OP)
         for idx, action in enumerate(self.discrete_actions[:-1]):
             x, y, rot = action
             w, d, h = self.dims_after_rotation(self.current_box, rot)
 
-            # 1) limites no plano (x,y)
             if (x + w > self.bin.width) or (y + d > self.bin.depth):
                 continue
 
-            # 2) z mínimo
             z = self.bin.find_lowest_z((w, d, h), x, y)
 
-            # 3) limite vertical (altura)
             if z + h > self.bin.height:
                 continue
 
-            # 4) colisão AABB com caixas já colocadas
             collision = False
             for b in self.bin.boxes:
                 bx, by, bz = b.position
                 bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
 
-                overlap_x = not (x + w <= bx or x >= bx + bw)  # largura
-                overlap_y = not (y + d <= by or y >= by + bd)  # profundidade
-                overlap_z = not (z + h <= bz or z >= bz + bh)  # altura
+                overlap_x = not (x + w <= bx or x >= bx + bw) 
+                overlap_y = not (y + d <= by or y >= by + bd) 
+                overlap_z = not (z + h <= bz or z >= bz + bh)  
 
                 if overlap_x and overlap_y and overlap_z:
                     collision = True
@@ -522,23 +459,18 @@ class PackingEnv(gym.Env):
 
             mask[idx] = 1.0
 
-        # Garante que nunca é all-zero: ativa NO-OP quando não há mais nada
         if self.include_noop and mask.sum() == 0:
             mask[self.NOOP_IDX] = 1.0
         return mask
 
     def current_max_height(self):
         """
-        Get the maximum vertical height currently occupied in the bin.
-
-        - If no boxes are placed, return 0.0
-        - Otherwise, compute the topmost Y-coordinate across all placed boxes:
-        position_y (bottom) + box_height (after applying rotation).
+        Get the maximum vertical (z) height currently occupied in the bin.
 
         Returns:
-        - float: the tallest stack height reached in the bin so far
+            float: 0.0 if no boxes; otherwise max over (z_bottom + rotated_height).
         """
         if not self.bin.boxes:
             return 0.0
-        # Z-top = bottom z-position + rotated height (depends on box orientation)
+
         return max(b.position[2] + self.dims_after_rotation(b, b.rotation_type)[2] for b in self.bin.boxes)

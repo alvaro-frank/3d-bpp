@@ -11,7 +11,7 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
     Each box is drawn as a colored cuboid inside the bin.
     Useful for debugging, monitoring training progress, or generating GIFs.
 
-    Parameters:
+    Args:
     - boxes (list): list of Box objects (each with .position and .get_rotated_size())
     - bin_size (tuple): dimensions of the bin (width, height, depth)
     - save_path (str, optional): if provided, save the plot as an image to this path

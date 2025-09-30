@@ -8,9 +8,21 @@ from typing import Optional, Dict, Any, List
 import numpy as np
 import torch
 
-
 @dataclass
 class TrainPPOConfig:
+    """
+    Training configuration for PPO.
+
+    Attributes:
+        num_episodes: Total number of training episodes.
+        max_steps_per_episode: Optional hard cap on steps per episode (None = unlimited).
+        log_every: Print rolling stats every N episodes.
+        eval_every: Evaluate every N episodes (0 = disabled).
+        eval_episodes: Number of episodes to average during evaluation.
+        save_every: Save a checkpoint every N episodes.
+        save_dir: Output directory for runs, plots, and checkpoints.
+        seed: Optional random seed for reproducibility.
+    """
     num_episodes: int = 1000
     max_steps_per_episode: Optional[int] = None
     log_every: int = 10
@@ -21,10 +33,21 @@ class TrainPPOConfig:
     seed: Optional[int] = 42
 
 def _ensure_dir(path: str):
+    """
+    Create a directory if it doesn't exist.
+
+    Args:
+        path: Directory path to create.
+    """
     os.makedirs(path, exist_ok=True)
 
-
 def _maybe_valid_mask(env) -> Optional[np.ndarray]:
+    """
+    Safely call env.valid_action_mask() if available.
+
+    Returns:
+        Optional[np.ndarray]: A float mask in [0,1] if provided by the env, else None.
+    """
     if hasattr(env, "valid_action_mask") and callable(getattr(env, "valid_action_mask")):
         try:
             m = env.valid_action_mask()
@@ -37,6 +60,17 @@ def _maybe_valid_mask(env) -> Optional[np.ndarray]:
 
 @torch.no_grad()
 def _bootstrap_value_if_truncated(agent, last_obs, was_truncated: bool) -> float:
+    """
+    Estimate bootstrap value for a truncated (non-terminal) episode.
+
+    Args:
+        agent: PPO agent with `.model` and `.config.device`.
+        last_obs: Final observation of the rollout.
+        was_truncated: Whether the episode ended due to a time/step limit.
+
+    Returns:
+        float: Value estimate V(s_T) if truncated; otherwise 0.0.
+    """
     if not was_truncated:
         return 0.0
     device = torch.device(agent.config.device if hasattr(agent, "config") else ("cuda" if torch.cuda.is_available() else "cpu"))
@@ -48,6 +82,17 @@ def _bootstrap_value_if_truncated(agent, last_obs, was_truncated: bool) -> float
 
 
 def evaluate(env, agent, episodes: int = 5) -> Dict[str, float]:
+    """
+    Run a short evaluation loop and report mean return/steps.
+
+    Args:
+        env: Environment instance (must support reset/step and valid_action_mask()).
+        agent: PPO agent (must implement get_action()).
+        episodes: Number of evaluation episodes to average.
+
+    Returns:
+        Dict[str, float]: {'eval_return_mean', 'eval_steps_mean'}.
+    """
     returns: List[float] = []
     steps: List[int] = []
     for _ in range(episodes):
@@ -85,7 +130,21 @@ def evaluate(env, agent, episodes: int = 5) -> Dict[str, float]:
 
 
 def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
-    # Seeding
+    """
+    Train a PPO agent for a given number of episodes, with optional periodic evaluation
+    and checkpointing. Saves a learning curve plot at the end.
+
+    Args:
+        env: Environment instance (must support reset/step and optional valid_action_mask()).
+        agent: PPO agent implementing get_action(), store_transition(), train(), and save().
+        cfg: Training configuration (see TrainPPOConfig).
+
+    Returns:
+        Dict[str, Any]: {
+            'history': list of per-episode logs,
+            'best_eval_return': best evaluation mean return seen (or -inf if eval disabled)
+        }
+    """
     if cfg.seed is not None and hasattr(env, "seed"):
         try:
             env.seed(cfg.seed)
@@ -152,14 +211,12 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
         last_value = _bootstrap_value_if_truncated(agent, obs, was_truncated)
         ppo_metrics = agent.train(last_value=last_value)
 
-        # ------- UTILIZAÇÃO: MESMO CÓDIGO DO DQN -------
         try:
             volume_used = env.get_placed_boxes_volume()
-            bin_volume = env.bin.bin_volume()   # método, tal como no DQN
+            bin_volume = env.bin.bin_volume()
             pct_volume_used = (volume_used / bin_volume) * 100 if bin_volume > 0 else 0.0
         except Exception:
             pct_volume_used = float(last_info.get("volume_utilization_pct") or 0.0)
-        # ------------------------------------------------
 
         rewards_per_episode.append(ep_ret)
         volume_utilizations.append(float(pct_volume_used))
@@ -197,7 +254,6 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
 
     agent.save(os.path.join(cfg.save_dir, "ppo_final.pt"))
 
-    # ------- CURVA DE APRENDIZAGEM: EXACTAMENTE COMO NO DQN -------
     save_path = os.path.join(cfg.save_dir, "ppo_learning_curve.png")
 
     window = 100
@@ -228,11 +284,25 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
-    # ---------------------------------------------------------------
 
     return {"history": history, "best_eval_return": best_eval}
 
 def sanity_check_mask(env, episodes=5):
+    """
+    Quick validation for env.valid_action_mask() behavior.
+
+    Checks per step:
+        - shape matches env action dimension
+        - no NaN/Inf, no negatives, not all zeros
+        - counts valid actions
+
+    Args:
+        env: Environment instance.
+        episodes: Number of episodes to probe.
+
+    Prints:
+        Problem counters and min/mean/max number of valid actions per step.
+    """
     import numpy as np
     problems = {"nan":0, "neg":0, "wrong_shape":0, "all_zero":0}
     counts_valid = []
@@ -243,7 +313,7 @@ def sanity_check_mask(env, episodes=5):
         while not done:
             m = env.valid_action_mask()
             m = np.asarray(m, dtype=np.float32)
-            # checks
+
             if m.shape[0] != act_dim:
                 problems["wrong_shape"] += 1
             if np.isnan(m).any():
@@ -253,7 +323,7 @@ def sanity_check_mask(env, episodes=5):
             if (m <= 0).all():
                 problems["all_zero"] += 1
             counts_valid.append(int((m > 0.5).sum()))
-            # avança um passo com uma ação válida aleatória para progredir
+
             valid_idxs = np.where(m > 0.5)[0]
             a = int(np.random.choice(valid_idxs)) if len(valid_idxs) else 0
             step_out = env.step(a)
