@@ -1,9 +1,9 @@
 # 3D Bin Packing
 
 A simple research project for the 3D Bin Packing Problem using **Reinforcement Learning**.  
-It includes a custom Gym environment, DQN/PPO agents, a heuristic baseline, and 3D visualizations (with optional GIF export).
+It includes a custom Gym environment, DQN/PPO agents, a heuristic baseline, and 3D visualizations (with GIF export).
 
-![Training curve](runs/ppo/ppo_5000steps.gif)
+![Packing GIF](runs/ppo/ppo_5000steps.gif)
 
 ## Features
 - Custom `gym.Env` for 3D bin packing (`src/environment/packing_env.py`).
@@ -15,7 +15,7 @@ It includes a custom Gym environment, DQN/PPO agents, a heuristic baseline, and 
 ## Observation Space
 The **state representation** encodes the environment at each step:
 - **Bin state:** Occupancy grid / 3D representation of already placed boxes.
-- **Next box features:** Dimensions (w, h, d), volume, and orientation.
+- **Next box features:** Dimensions (w, h, d) and orientation.
 - **Packing statistics:** Remaining space, number of boxes placed, total volume used, etc.
 
 This provides the agent with both spatial and sequential context to decide where to place the next box.
@@ -52,13 +52,13 @@ Run the end‑to‑end script (train → evaluate → visuals):
 ```bash
 python src/main.py
 ```
-This will train an RL agent (DQN or PPO), evaluate it against fixed test sets and a heuristic baseline, and write artifacts to `src/runs/` (learning curves, models, and optional GIFs).
+This will train an RL agent (DQN or PPO), evaluate it against fixed test sets and a heuristic baseline, and write artifacts to `src/runs/` (learning curves, models, logs and GIFs).
 
 ### Outputs
 - `src/runs/*/*learning_curve.png` — learning curves
 - `src/runs/*/*packing.gif` — packing animations
 - `src/runs/*/*log.txt` - training logs
-- `src/runs/*/*placed_boxes.txt` - placed boxes coordinated during training
+- `src/runs/*/*placed_boxes.txt` - placed boxes coordinates during training
 
 ## Configuration
 Key knobs you may want to tweak live in the code:
