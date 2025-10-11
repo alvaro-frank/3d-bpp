@@ -1,6 +1,6 @@
 # 3D Bin Packing
 
-A simple research project for the 3D Bin Packing Problem using **Reinforcement Learning**.  
+A research project for the 3D Bin Packing Problem using **Reinforcement Learning**.  
 It includes a custom Gym environment, DQN/PPO agents, a heuristic baseline, and 3D visualizations (with GIF export).
 
 ![Packing GIF](runs/ppo/ppo_5000steps.gif)
