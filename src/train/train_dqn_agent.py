@@ -38,8 +38,8 @@ def train_dqn_agent(
     rewards_per_episode = []
     volume_utilizations = [] # track utilization % per episode
 
-    log_file = "train/train_dqn_log.txt"
-    log_positions = "train/train_dqn_positions.txt"
+    log_file = "src/train/train_dqn_log.txt"
+    log_positions = "src/train/train_dqn_positions.txt"
 
     # Before training starts: clear old log
     with open(log_file, "w") as f:
