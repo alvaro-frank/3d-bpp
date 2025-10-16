@@ -115,7 +115,3 @@ make evaluate AGENT=dqn MODEL=runs/dqn/dqn_best.pt BOXES=80
 By default, evaluation generates plots and 3D packing GIFs in `runs/<agent>/`.
 
 ---
-
-## Repro Tips
-- Set seeds via `utils/seed.py` to make comparisons fair.
-- Use the same test sets for all methods (`utils/testsets.py`).
