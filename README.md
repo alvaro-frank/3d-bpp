@@ -23,7 +23,7 @@ This provides the agent with both spatial and sequential context to decide where
 ## Reward Shaping
 The reward function is crucial for guiding the agent:
 - **Positive reward** for successfully placing a box in the bin without overlap.  
-- **Volume‑based reward:** Proportional to the filled volume fraction (encourages tighter packing).  
+- **Volume-based reward:** Proportional to the filled volume fraction (encourages tighter packing).  
 - **Penalty** for invalid placements or leaving too much unused space.  
 - **Episode reward:** Cumulative sum reflects how efficiently the agent packed all boxes.
 
@@ -38,8 +38,14 @@ src/
   heuristics/          # Heuristic baseline(s)
   train/               # Training loops for DQN & PPO
   utils/               # Action space, box generation, seeding, viz, test sets
-  runs/                # Models, logs, plots, and generated GIFs (outputs)
-  main.py              # End‑to‑end script: train + evaluate + visualize
+  main.py              # End-to-end script: train + evaluate + visualize
+runs/                  # Plots, and generated GIFs (outputs)
+  dqn/
+    models/            # Saved dqn agents
+  ppo/
+    models/            # Saved ppo agents
+requirements.txt
+Makefile
 ```
 
 ## Requirements
@@ -47,25 +53,65 @@ src/
 pip install -r requirements.txt
 ```
 
+---
+
 ## Quick Start
-Run the end‑to‑end script (train → evaluate → visuals):
+
+### 🧠 Training
+Train an RL agent (DQN or PPO) on the 3D Bin Packing environment:
+
 ```bash
-python src/main.py
+make train
 ```
-This will train an RL agent (DQN or PPO), evaluate it against fixed test sets and a heuristic baseline, and write artifacts to `src/runs/` (learning curves, models, logs and GIFs).
 
-### Outputs
-- `src/runs/*/*learning_curve.png` — learning curves
-- `src/runs/*/*packing.gif` — packing animations
-- `src/runs/*/*log.txt` - training logs
-- `src/runs/*/*placed_boxes.txt` - placed boxes coordinates during training
+You can override defaults by passing variables on the command line:
 
-## Configuration
-Key knobs you may want to tweak live in the code:
-- **Environment** size and number of boxes: `PackingEnv(bin_size=..., max_boxes=...)` in `src/environment/packing_env.py` or where the env is created in the training loop.
-- **Training** lengths and logging cadence: see `src/train/train_dqn_agent.py` and `src/train/train_ppo_agent.py`.
-- **Main pipeline** defaults (episodes, boxes, seeds): see `src/main.py`.
+| Arg        | Purpose                                   | Default | Examples |
+|------------|-------------------------------------------|---------|----------|
+| `AGENT`    | Which agent to train (`dqn` or `ppo`)     | `dqn`   | `AGENT=ppo` |
+| `EPISODES` | Number of training episodes               | `200`   | `EPISODES=5000` |
+| `BOXES`    | Number of boxes per episode               | `50`    | `BOXES=100` |
+| `SEED`     | Random seed                               | `41`    | `SEED=123` |
 
-## Repro Tips
-- Set seeds via `utils/seed.py` to make comparisons fair.
-- Use the same test sets for all methods (`utils/testsets.py`).
+Examples:
+```bash
+# Train PPO for longer
+make train AGENT=ppo EPISODES=5000
+
+# Train DQN with more boxes and a fixed seed
+make train AGENT=dqn BOXES=80 SEED=7
+```
+
+Artifacts (per agent) are stored under `runs/<agent>/` (models, plots, GIFs).
+
+---
+
+### 📊 Evaluation
+Evaluate a saved model against fixed test sets and the heuristic baseline:
+
+```bash
+make evaluate
+```
+
+You can target a specific checkpoint and adjust evaluation settings:
+
+| Arg        | Purpose                                            | Default         | Examples |
+|------------|----------------------------------------------------|-----------------|----------|
+| `AGENT`    | Which agent’s directory/model to use               | `dqn`           | `AGENT=ppo` |
+| `MODEL`    | Path to a specific checkpoint to evaluate          | *(best/latest)* | `MODEL=runs/ppo/dqn_best.pt` |
+| `TESTS`    | Number of evaluation episodes (test cases)         | `41`            | `TESTS=50` |
+| `BOXES`    | Number of boxes per evaluation episode             | `50`            | `BOXES=100` |
+| `SEED`     | Random seed for evaluation                         | `41`            | `SEED=123` |
+
+Examples:
+```bash
+# Evaluate the latest PPO checkpoint on 50 tests
+make evaluate AGENT=ppo TESTS=50
+
+# Evaluate a specific model file with more boxes
+make evaluate AGENT=dqn MODEL=runs/dqn/dqn_best.pt BOXES=80
+```
+
+By default, evaluation generates plots and 3D packing GIFs in `runs/<agent>/`.
+
+---
