@@ -1,5 +1,5 @@
 # Defaults (override on the command line)
-AGENT ?= dqn        # dqn|ppo
+AGENT ?= ppo        # dqn|ppo
 EPISODES ?= 200
 BOXES ?= 50
 SEED ?= 41
@@ -27,6 +27,9 @@ endif
 REQ_MIN := numpy matplotlib imageio gym==0.21.0 torch
 
 # ---------- Targets ----------
+.PHONY: all
+all: venv train evaluate ## Create venv, train and evaluate agent
+
 .PHONY: venv
 venv: ## Create virtualenv and install minimal deps
 	$(MKVENV)
