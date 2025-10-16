@@ -70,6 +70,13 @@ This will:
 - Generate visualizations and logs.
 
 You can also customize the run using arguments (see below).
+### 🐍 Virtual Environment
+This section explains how to create and activate the virtual environment, just use the command line:
+
+```bash
+make setup
+```
+
 ### 🧠 Training
 Train an RL agent (DQN or PPO) on the 3D Bin Packing environment:
 
