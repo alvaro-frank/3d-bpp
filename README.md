@@ -65,6 +65,7 @@ make all
 ```
 
 This will:
+- Create the virtual environment.
 - Train the RL agent (default: DQN).
 - Evaluate it against fixed test sets and the heuristic baseline.
 - Generate visualizations and logs.
