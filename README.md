@@ -56,7 +56,20 @@ pip install -r requirements.txt
 ---
 
 ## Quick Start
+### 🚀 Full Pipeline
 
+To train, evaluate, and visualize everything in one go:
+
+```bash
+make all
+```
+
+This will:
+- Train the RL agent (default: DQN).
+- Evaluate it against fixed test sets and the heuristic baseline.
+- Generate visualizations and logs.
+
+You can also customize the run using arguments (see below).
 ### 🧠 Training
 Train an RL agent (DQN or PPO) on the 3D Bin Packing environment:
 
@@ -68,7 +81,7 @@ You can override defaults by passing variables on the command line:
 
 | Arg        | Purpose                                   | Default | Examples |
 |------------|-------------------------------------------|---------|----------|
-| `AGENT`    | Which agent to train (`dqn` or `ppo`)     | `dqn`   | `AGENT=ppo` |
+| `AGENT`    | Which agent to train (`dqn` or `ppo`)     | `ppo`   | `AGENT=ppo` |
 | `EPISODES` | Number of training episodes               | `200`   | `EPISODES=5000` |
 | `BOXES`    | Number of boxes per episode               | `50`    | `BOXES=100` |
 | `SEED`     | Random seed                               | `41`    | `SEED=123` |
