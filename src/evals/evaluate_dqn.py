@@ -23,7 +23,7 @@ def evaluate_agent_on_episode(agent, episode_boxes, env_seed=None, generate_gif=
         max_boxes=len(episode_boxes),
         generate_gif=generate_gif,
         gif_name=gif_name,
-        include_noop=True
+        include_noop=False
     )
 
     # Reset env with predetermined boxes

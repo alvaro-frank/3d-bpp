@@ -176,8 +176,6 @@ class DQNAgent:
                 probs = probs / ps
 
             return int(np.random.choice(len(q_values), p=probs))
-        else:
-            raise ValueError(f"Exploration mode desconhecido: {self.exploration}")
 
     def store_transition(self, state, action_idx, reward, next_state, done):
         """

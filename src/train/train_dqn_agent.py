@@ -6,6 +6,7 @@ from utils.visualization import plot_bin
 from utils.visualization import create_gif
 import shutil
 import matplotlib.pyplot as plt
+import torch
 
 def train_dqn_agent(
     num_episodes=100,
@@ -38,15 +39,12 @@ def train_dqn_agent(
     rewards_per_episode = []
     volume_utilizations = [] # track utilization % per episode
 
-    log_file = "src/train/train_dqn_log.txt"
-    log_positions = "src/train/train_dqn_positions.txt"
+    save_dir = "runs/dqn/models"
+    os.makedirs(save_dir, exist_ok=True)
 
-    # Before training starts: clear old log
-    with open(log_file, "w") as f:
-        f.write("==== DQN Training Log ====\n\n")
-
-    with open(log_positions, "w") as f:
-        f.write("==== DQN Training Boxes Positions ====\n\n")
+    best_avg = float("-inf")          # track best running performance
+    AVG_WINDOW = 100                  # moving average window
+    SAVE_EVERY = 100                  # save every N episodes
 
     # Optional: prepare directory for GIF frames
     if generate_gif:
@@ -55,12 +53,6 @@ def train_dqn_agent(
         frame_count = 0
     
     for episode in range(num_episodes):
-        with open(log_file, "a") as f:
-            f.write(f"==== Episode {episode+1} START ====\n")
-
-        with open(log_positions, "a") as f:
-            f.write(f"==== Episode {episode+1} START ====\n")
-
         state = env.reset()
         
         total_reward = 0
@@ -72,7 +64,7 @@ def train_dqn_agent(
 
             # Select action using epsilon-greedy (with mask applied)
             action = agent.get_action(state, env.action_space, mask=mask)
-            next_state, reward, done, info = env.step(action, log_file=log_file, pos_file=log_positions)
+            next_state, reward, done, info = env.step(action)
 
             if generate_gif:
                 frame_path = os.path.join(gif_dir, f"frame_{frame_count:04d}.png")
@@ -94,15 +86,19 @@ def train_dqn_agent(
         bin_volume = env.bin.bin_volume()
         pct_volume_used = (volume_used / bin_volume) * 100
         volume_utilizations.append(pct_volume_used)
+        
+        start = max(0, len(rewards_per_episode) - AVG_WINDOW)
+        avg_reward = sum(rewards_per_episode[start:]) / (len(rewards_per_episode) - start)
+        
+        print(f"Episode {episode + 1}: Total Reward = {total_reward:.2f}")
 
-        with open(log_file, "a") as f:
-          f.write(f"==== Episode {episode+1} END ====\n")
-          f.write(f"Total reward: {total_reward:.2f}\n")
-          f.write(f"Boxes placed: {len(env.bin.boxes)}/{env.max_boxes}\n")
-          f.write(f"Utilization: {pct_volume_used:.2f}%\n\n")
-
-        with open(log_positions, "a") as f:
-          f.write(f"==== Episode {episode+1} END ====\n")  
+        # "best so far" checkpoint by average reward
+        if avg_reward > best_avg:
+            best_avg = avg_reward
+            torch.save(
+                agent.model.state_dict(),
+                os.path.join(save_dir, f"dqn_best_{agent.exploration}.pt")
+            ) 
 
         #print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
         if (episode + 1) % 100 == 0:
@@ -112,12 +108,17 @@ def train_dqn_agent(
                   f"Mean Reward = {mean_reward:.2f}, "
                   f"Mean Utilization = {mean_util:.2f}%, "
                   f"Epsilon = {agent.epsilon:.2f}")
+            
+    torch.save(
+        agent.model.state_dict(),
+        os.path.join(save_dir, f"dqn_final_{agent.exploration}.pt")
+    )
                   
     if generate_gif:
         create_gif(gif_dir, gif_name)
         shutil.rmtree(gif_dir)
 
-    save_path = os.path.join("runs", "learning_curve.png")
+    save_path = os.path.join("runs/dqn", "learning_curve.png")
 
     window = 100
     rewards_smoothed = [np.mean(rewards_per_episode[i:i+window]) 

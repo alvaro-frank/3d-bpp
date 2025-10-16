@@ -1,7 +1,5 @@
 # main.py
 import os
-import sys
-import json
 from pathlib import Path
 import argparse
 import numpy as np
@@ -33,7 +31,7 @@ def train_ppo_agent(num_episodes: int, max_boxes: int, generate_gif: bool = Fals
     Returns:
         PPOAgent: Trained PPO agent ready for evaluation.
     """
-    env = PackingEnv(max_boxes=max_boxes, include_noop=True)
+    env = PackingEnv(max_boxes=max_boxes, include_noop=False)
 
     obs = env.reset()
     if isinstance(obs, tuple):
@@ -95,8 +93,8 @@ def main():
                         help="Agente a treinar: dqn_agent (default) ou ppo_agent")
     args = parser.parse_args()
 
-    SEED = 42
-    N_EPISODES = 5000
+    SEED = 41
+    N_EPISODES = 200
     N_TESTS = 20
     N_BOXES = 50
     seed_all(SEED)
@@ -166,17 +164,21 @@ def main():
         test_sets[best_heur_idx],
         env_seed=SEED + best_heur_idx,
         generate_gif=True,
-        gif_name=f"runs/heuristic_best_ep{best_heur_idx}.gif",
+        gif_name="runs/heuristic_best.gif",
     )
 
     print(f"\n🎞️ Generating GIF for best {args.agent} test (Episode {best_agent_idx+1}) "
           f"with {best_agent_score:.2f}% volume used...")
+    if args.agent == 'dqn_agent':
+        gif_file = "runs/dqn/agent_best.gif"
+    else:
+        gif_file = "runs/ppo/agent_best.gif"
     evaluate_agent_on_episode(
         agent,
         test_sets[best_agent_idx],
         env_seed=SEED + best_agent_idx,
         generate_gif=True,
-        gif_name=f"runs/agent_best_ep{best_agent_idx}.gif",
+        gif_name=gif_file,
     )
 
 if __name__ == "__main__":

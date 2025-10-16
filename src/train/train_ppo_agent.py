@@ -30,6 +30,7 @@ class TrainPPOConfig:
     eval_episodes: int = 5
     save_every: int = 50
     save_dir: str = "runs/ppo"
+    save_models: str = "runs/ppo/models"
     seed: Optional[int] = 42
 
 def _ensure_dir(path: str):
@@ -160,6 +161,7 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
         torch.manual_seed(cfg.seed)
 
     _ensure_dir(cfg.save_dir)
+    _ensure_dir(cfg.save_models)
     history: List[Dict[str, float]] = []
     best_eval = -float("inf")
 
@@ -248,13 +250,13 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
                 print(f"[PPO][Eval] erro na avaliação: {e}")
 
         if (ep % cfg.save_every) == 0:
-            agent.save(os.path.join(cfg.save_dir, "ppo_latest.pt"))
+            agent.save(os.path.join(cfg.save_models, "ppo_latest.pt"))
 
     sanity_check_mask(env)
+    
+    agent.save(os.path.join(cfg.save_models, "ppo_final.pt"))
 
-    agent.save(os.path.join(cfg.save_dir, "ppo_final.pt"))
-
-    save_path = os.path.join(cfg.save_dir, "ppo_learning_curve.png")
+    save_path = os.path.join(cfg.save_dir, "learning_curve.png")
 
     window = 100
     rewards_smoothed = [np.mean(rewards_per_episode[i:i+window])

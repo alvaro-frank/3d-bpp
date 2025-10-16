@@ -2,10 +2,6 @@ import numpy as np
 import random
 import gym
 import os
-import imageio
-import copy
-import shutil
-import logging
 
 from environment.box import Box as BinBox
 from gym.spaces import Box as GymBox
@@ -191,14 +187,12 @@ class PackingEnv(gym.Env):
 
         return obs
 
-    def step(self, action_idx, log_file=None, pos_file=None):
+    def step(self, action_idx):
         """
         Apply a discrete action (x, y, rotation) or NO-OP and advance the environment.
 
         Args:
             action_idx (int): Index in the discrete action set.
-            log_file (str | None): Optional file to append step logs.
-            pos_file (str | None): Optional file to append placements (positions/rotations).
 
         Returns:
             tuple:
@@ -211,13 +205,7 @@ class PackingEnv(gym.Env):
             - On successful placement, the box is added and an intermediate reward may be applied.
             - On failure or NO-OP, the box is skipped. Terminal reward adds a utilization bonus.
         """
-        def log(msg: str):
-          if log_file:
-              with open(log_file, "a") as f:
-                  f.write(msg + "\n")
-
-        log(f"Step {self.current_step}")
-        
+    
         if self.include_noop and action_idx == self.NOOP_IDX:
             reward = 0.0 
             info = {"success": False, "noop": True}
@@ -226,7 +214,6 @@ class PackingEnv(gym.Env):
             done = self.current_step >= self.max_boxes
             if done:
                 reward = 10 * self.calculate_utilization_ratio()
-                log(f"    Episode ended (noop), utilization = {reward:.2f}")
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
                 obs = np.zeros(self._obs_length(), dtype=np.float32)
             else:
@@ -242,7 +229,6 @@ class PackingEnv(gym.Env):
 
         # If placement failed
         if not success:
-            log("    Box misplaced (ignored in simple version)")
             reward = 0.0
             self.skipped_boxes.append(self.current_box)
         # If placement succeeded
@@ -258,14 +244,6 @@ class PackingEnv(gym.Env):
                         title=f"Box {self.current_box.id} at {self.current_box.position} rot={rot}")
                 self.frame_count += 1
 
-            if pos_file:
-                with open(pos_file, "a") as pf:
-                    pf.write(
-                        f"    Step {self.current_step} | "
-                        f"Box {self.current_box.id} placed at {self.current_box.position} "
-                        f"rot={rot}, size={self.current_box.get_rotated_size()}\n"
-                    )
-
             self.packed_boxes.append(self.current_box)
 
         info = {"success": True}
@@ -278,7 +256,6 @@ class PackingEnv(gym.Env):
         # Episode ends: add terminal utilization bonus
         if done:
             reward = 10 * self.calculate_utilization_ratio()
-            log(f"    Episode ended, utilization = {reward:.2f}")
             finalize_gif(self.gif_dir, self.gif_name, fps=2)
             obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
@@ -401,7 +378,7 @@ class PackingEnv(gym.Env):
         if rot == 2:   # (d,w,h)
             return d0, w0, h0
         if rot == 3:   # (h,d,w)
-            return h0, d0, d0
+            return h0, d0, w0
         if rot == 4:   # (d,h,w)
             return d0, h0, w0
         if rot == 5:   # (h,w,d)
