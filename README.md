@@ -65,14 +65,14 @@ make all
 ```
 
 This will:
-- Create the virtual environment.
+- Create the virtual environment and installs the required packages from `requirements.txt`.
 - Train the RL agent (default: DQN).
 - Evaluate it against fixed test sets and the heuristic baseline.
 - Generate visualizations and logs.
 
 You can also customize the run using arguments (see below).
 ### 🐍 Virtual Environment
-This section explains how to create and activate the virtual environment, just use the command line:
+This section explains how to create and activate the virtual environment and installs the required packages from `requirements.txt`, just use the command line:
 
 ```bash
 make setup
