@@ -1,4 +1,9 @@
-# Makefile (Windows + Linux/Mac compatible, simple)
+# Defaults (override on the command line)
+AGENT ?= dqn        # dqn|ppo
+EPISODES ?= 200
+BOXES ?= 50
+SEED ?= 41
+MODEL ?=
 
 .DEFAULT_GOAL := help
 
@@ -22,14 +27,6 @@ endif
 REQ_MIN := numpy matplotlib imageio gym==0.21.0 torch
 
 # ---------- Targets ----------
-.PHONY: help
-help: ## Show available targets
-	@echo:
-	@echo  Targets:
-	@grep -E '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-	awk 'BEGIN {FS=":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
-	@echo:
-
 .PHONY: venv
 venv: ## Create virtualenv and install minimal deps
 	$(MKVENV)
@@ -37,21 +34,9 @@ venv: ## Create virtualenv and install minimal deps
 	$(PY) -m pip install numpy matplotlib imageio gym==0.21.0 torch
 	@echo ✅ venv ready
 
-.PHONY: train-dqn
-train-dqn: venv ## Train DQN agent (defaults inside your code)
-	$(SET_PYTHONPATH) $(PY) src/main.py dqn_agent
+.PHONY: train evaluate
+train: venv ## Train agent: make train AGENT=dqn|ppo EPISODES=200 BOXES=50 SEED=41
+	$(SET_PYTHONPATH) $(PY) src/main.py train --agent $(AGENT) --episodes $(EPISODES) --boxes $(BOXES) --seed $(SEED)
 
-.PHONY: train-ppo
-train-ppo: venv ## Train PPO agent (defaults inside your code)
-	$(SET_PYTHONPATH) $(PY) src/main.py ppo_agent
-
-.PHONY: clean
-clean: ## Remove caches
-	-$(RM) .pytest_cache 2>nul || true
-	-$(RM) .mypy_cache 2>nul || true
-	-$(RM) .ruff_cache 2>nul || true
-
-.PHONY: distclean
-distclean: clean ## Remove venv and run artifacts
-	-$(RM) .venv 2>nul || true
-	-$(RM) runs 2>nul || true
+evaluate: venv ## Evaluate agent: make evaluate AGENT=dqn|ppo MODEL=path/to.ckpt TESTS=20 BOXES=50 SEED=41
+	$(SET_PYTHONPATH) $(PY) src/main.py evaluate --agent $(AGENT) $(if $(MODEL),--model "$(MODEL)",) --tests $(TESTS) --boxes $(BOXES) --seed $(SEED) --gifs

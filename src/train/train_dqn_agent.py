@@ -97,7 +97,7 @@ def train_dqn_agent(
             best_avg = avg_reward
             torch.save(
                 agent.model.state_dict(),
-                os.path.join(save_dir, f"dqn_best_{agent.exploration}.pt")
+                os.path.join(save_dir, f"dqn_best.pt")
             ) 
 
         #print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
@@ -111,7 +111,7 @@ def train_dqn_agent(
             
     torch.save(
         agent.model.state_dict(),
-        os.path.join(save_dir, f"dqn_final_{agent.exploration}.pt")
+        os.path.join(save_dir, "dqn_final.pt")
     )
                   
     if generate_gif:
