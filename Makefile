@@ -17,12 +17,11 @@ MKVENV := if not exist .venv ( $(PYTHON) -m venv .venv )
 REQ_MIN := numpy matplotlib imageio gym==0.21.0 torch
 
 # ---------- Targets ----------
-all: venv train evaluate ## Create venv, train and evaluate agent
+all: setup train evaluate ## Create venv, train and evaluate agent
 
-venv: ## Create virtualenv and install minimal deps
+setup: ## Create virtualenv and install minimal deps
 	$(MKVENV)
-	$(PY) -m pip install "pip<24.1" wheel
-	$(PY) -m pip install numpy matplotlib imageio gym==0.21.0 torch
+	$(PY) -m pip install -r src/requirements.txt
 	@echo ✅ venv ready
 
 train: ## Train agent: make train AGENT=dqn|ppo EPISODES=200 BOXES=50 SEED=41
