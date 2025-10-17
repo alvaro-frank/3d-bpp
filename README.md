@@ -66,7 +66,7 @@ make all
 
 This will:
 - Create the virtual environment and installs the required packages from `requirements.txt`.
-- Train the RL agent (default: DQN).
+- Train the RL agent (default: PPO).
 - Evaluate it against fixed test sets and the heuristic baseline.
 - Generate visualizations and logs.
 
