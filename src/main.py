@@ -6,7 +6,7 @@ import glob
 import numpy as np
 import torch
 
-from evals.evaluate_dqn import evaluate_agent_on_episode
+from evals.evaluate_agent import evaluate_agent_on_episode
 from evals.evaluate_heuristic import evaluate_heuristic_on_episode
 from utils.testsets import make_test_sets, load_test_sets
 from train.train_dqn_agent import train_dqn_agent as dqn_train_loop
