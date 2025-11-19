@@ -2,6 +2,7 @@
 import os
 import time
 import matplotlib.pyplot as plt
+import mlflow
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 
@@ -217,11 +218,22 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
             volume_used = env.get_placed_boxes_volume()
             bin_volume = env.bin.bin_volume()
             pct_volume_used = (volume_used / bin_volume) * 100 if bin_volume > 0 else 0.0
+            boxes_placed = len(env.packed_boxes)
+            skipped_boxes = len(env.skipped_boxes)
         except Exception:
             pct_volume_used = float(last_info.get("volume_utilization_pct") or 0.0)
 
         rewards_per_episode.append(ep_ret)
         volume_utilizations.append(float(pct_volume_used))
+        
+        window = 100
+        start_idx = max(0, len(rewards_per_episode) - window)
+        avg_ret_recent = np.mean(rewards_per_episode[start_idx:])
+        
+        mlflow.log_metric("avg_reward_100", avg_ret_recent, step=ep)
+        mlflow.log_metric("volume_utilization", pct_volume_used, step=ep)
+        mlflow.log_metric("boxes_placed", boxes_placed, step=ep)
+        mlflow.log_metric("boxes_skipped", skipped_boxes, step=ep)
 
         log = {
             "episode": ep,
@@ -258,7 +270,6 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
 
     save_path = os.path.join(cfg.save_dir, "learning_curve.png")
 
-    window = 100
     rewards_smoothed = [np.mean(rewards_per_episode[i:i+window])
                         for i in range(0, len(rewards_per_episode), window)]
     utilizations_smoothed = [np.mean(volume_utilizations[i:i+window])

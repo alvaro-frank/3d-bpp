@@ -123,6 +123,7 @@ class PackingEnv(gym.Env):
         self.prev_max_height = 0.0
         self.placed_boxes = []
         self.skipped_boxes = []
+        self.packed_boxes = []
         self.initial_boxes = list(self.boxes)
         self.total_boxes_volume = sum(box.get_volume() for box in self.boxes)
 

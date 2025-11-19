@@ -100,16 +100,14 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
         if agent_type == "dqn":
             agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False)
             
-            mlflow.log_metric("accuracy", 0.99)
-            mlflow.pytorch.log_model(agent.model, name="model")
+            mlflow.pytorch.log_model(agent.model, name="dqn")
             
             mlflow.pytorch.log_model(
                 agent.model,
-                artifact_path="model"   # <- use artifact_path here; ignore the deprecation warning for now
-                # (optionally add signature=..., input_example=...)
+                artifact_path="model"
             )
             
-            model_name = "3d-bpp-model" 
+            model_name = "3d-bpp-dqn" 
             model_uri = f"runs:/{run.info.run_id}/model"
             mlflow.register_model(model_uri, model_name)
         else:
@@ -129,12 +127,18 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
             )
             os.makedirs(train_cfg.save_models, exist_ok=True)
             ppo_train_loop(env, agent, cfg=train_cfg)
+            
+            mlflow.pytorch.log_model(agent.model, name="ppo")
+            
+            model_name = "3d-bpp-ppo" 
+            model_uri = f"runs:/{run.info.run_id}/model"
+            mlflow.register_model(model_uri, model_name)
             try:
                 env.close()
             except Exception:
                 pass
 
-    print("✅ Training finished.")
+    print("Training finished.")
     return 0
 
 
@@ -155,14 +159,14 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
         if not model_path:
             raise FileNotFoundError("No DQN checkpoint found. Pass --model PATH or train first.")
         _load_weights_dqn(agent, model_path)
-        print(f"🔁 Loaded DQN weights from: {model_path}")
+        print(f"Loaded DQN weights from: {model_path}")
     else:
         agent = _build_ppo(env)
         model_path = model_path or _auto_find_checkpoint("ppo")
         if not model_path:
             raise FileNotFoundError("No PPO checkpoint found. Pass --model PATH or train first.")
         _load_weights_ppo(agent, model_path)
-        print(f"🔁 Loaded PPO weights from: {model_path}")
+        print(f"Loaded PPO weights from: {model_path}")
 
     out_dir = Path("runs")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -234,7 +238,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     except Exception:
         pass
 
-    print("✅ Evaluation finished.")
+    print("Evaluation finished.")
     return 0
 
 

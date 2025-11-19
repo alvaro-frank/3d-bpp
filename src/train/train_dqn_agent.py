@@ -7,6 +7,7 @@ from utils.visualization import create_gif
 import shutil
 import matplotlib.pyplot as plt
 import torch
+import mlflow
 
 def train_dqn_agent(
     num_episodes=100,
@@ -86,9 +87,19 @@ def train_dqn_agent(
         bin_volume = env.bin.bin_volume()
         pct_volume_used = (volume_used / bin_volume) * 100
         volume_utilizations.append(pct_volume_used)
+        boxes_placed = len(env.packed_boxes)
+        skipped_boxes = len(env.skipped_boxes)
         
         start = max(0, len(rewards_per_episode) - AVG_WINDOW)
         avg_reward = sum(rewards_per_episode[start:]) / (len(rewards_per_episode) - start)
+        
+        mlflow.log_metric("volume_utilization", pct_volume_used, step=episode)
+        mlflow.log_metric("epsilon", agent.epsilon, step=episode)
+        
+        mlflow.log_metric("avg_reward_100", avg_reward, step=episode)
+        
+        mlflow.log_metric("boxes_placed", boxes_placed, step=episode)
+        mlflow.log_metric("boxes_skipped", skipped_boxes, step=episode)
         
         print(f"Episode {episode + 1}: Total Reward = {total_reward:.2f}")
 
