@@ -140,7 +140,8 @@ By default, evaluation generates plots and 3D packing GIFs in `runs/<agent>/`.
 ### 📈 Experiment Tracking (MLflow)
 This project uses **MLflow** to track training performance and version models.
 
-#### How to Launch the Dashboard
+**How to Launch the Dashboard**
+
 To view training curves and logged artifacts, run the following command:
 ```bash
 make mlflow PORT=5000
@@ -149,13 +150,14 @@ This will start the MLflow server at **http://127.0.0.1:5000** by default.
 
 What is Logged?
 Every time you run make train, a new experiment run is created logging:
-#### Metrics:
+
+**Metrics**:
 - `volume_utilization`: % of bin volume filled.
 - `boxes_placed`: Number of boxes successfully packed.
 - `epsilon` (if DQN): Exploration rate decay.
 - `avg_reward_100`: Moving average of the last 100 episodes.
 
-#### Artifacts:
+**Artifacts**:
 - Model Checkpoints: The final trained model is saved as an MLflow artifact.
 
 ---
