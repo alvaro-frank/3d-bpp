@@ -100,8 +100,6 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
         if agent_type == "dqn":
             agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False)
             
-            mlflow.pytorch.log_model(agent.model, name="dqn")
-            
             mlflow.pytorch.log_model(
                 agent.model,
                 artifact_path="model"
@@ -128,7 +126,10 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
             os.makedirs(train_cfg.save_models, exist_ok=True)
             ppo_train_loop(env, agent, cfg=train_cfg)
             
-            mlflow.pytorch.log_model(agent.model, name="ppo")
+            mlflow.pytorch.log_model(
+                agent.model,
+                artifact_path="model"
+            )
             
             model_name = "3d-bpp-ppo" 
             model_uri = f"runs:/{run.info.run_id}/model"

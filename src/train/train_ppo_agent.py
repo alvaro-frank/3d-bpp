@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any, List
 
 import numpy as np
 import torch
+from dataclasses import asdict
 
 @dataclass
 class TrainPPOConfig:
@@ -164,6 +165,22 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     _ensure_dir(cfg.save_dir)
     _ensure_dir(cfg.save_models)
     history: List[Dict[str, float]] = []
+    
+    params = {
+        "gamma": 0.99,
+        "gae_lambda":0.95,
+        "clip_eps": 0.2,
+        "vf_coef": 0.5,
+        "ent_coef": 0.01,
+        "lr": 3e-4,
+        "max_grad_norm": 0.5,
+        "epochs": 4,
+        "minibatch_size": 1024,
+        "layer_norm": False,
+        "advantage_norm_eps": 1e-8   
+    }
+    mlflow.log_params(params)
+    
     best_eval = -float("inf")
 
     rewards_per_episode: List[float] = []

@@ -46,6 +46,19 @@ def train_dqn_agent(
     best_avg = float("-inf")          # track best running performance
     AVG_WINDOW = 100                  # moving average window
     SAVE_EVERY = 100                  # save every N episodes
+    
+    params = {
+        "agent_type": "dqn",
+        "num_episodes": num_episodes,
+        "bin_width": bin_size[0],
+        "bin_depth": bin_size[1],
+        "bin_height": bin_size[2],
+        "max_boxes": max_boxes,
+        "lr": 1e-3,           
+        "gamma": 0.99,        
+        "batch_size": 64     
+    }
+    mlflow.log_params(params)
 
     # Optional: prepare directory for GIF frames
     if generate_gif:
