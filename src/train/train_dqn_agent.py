@@ -104,7 +104,7 @@ def train_dqn_agent(
         if (episode + 1) % 100 == 0:
             mean_reward = np.mean(rewards_per_episode[-100:])
             mean_util   = np.mean(volume_utilizations[-100:])
-            print(f"📊 Episodes {episode-98}–{episode+1}: "
+            print(f"Episodes {episode-98}–{episode+1}: "
                   f"Mean Reward = {mean_reward:.2f}, "
                   f"Mean Utilization = {mean_util:.2f}%, "
                   f"Epsilon = {agent.epsilon:.2f}")

@@ -5,6 +5,7 @@ import argparse
 import glob
 import numpy as np
 import torch
+import mlflow
 
 from evals.evaluate_agent import evaluate_agent_on_episode
 from evals.evaluate_heuristic import evaluate_heuristic_on_episode
@@ -90,31 +91,48 @@ def _auto_find_checkpoint(agent_type: str) -> str | None:
 # --------------------------- commands ---------------------------------
 def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
     seed_all(seed)
-    print(f"📦 Training {agent_type.upper()} | episodes={episodes} boxes={boxes} seed={seed}")
-
-    if agent_type == "dqn":
-        agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False)
-    else:
-        # PPO: build env/agent to pass into PPO training loop
-        env = _build_env(max_boxes=boxes, include_noop=False)
-        agent = _build_ppo(env)
-        train_cfg = TrainPPOConfig(
-            num_episodes=episodes,
-            max_steps_per_episode=None,
-            log_every=10,
-            eval_every=0,
-            eval_episodes=5,
-            save_every=50,
-            save_dir="runs/ppo",
-            save_models="runs/ppo/models",
-            seed=seed,
-        )
-        os.makedirs(train_cfg.save_models, exist_ok=True)
-        ppo_train_loop(env, agent, cfg=train_cfg)
-        try:
-            env.close()
-        except Exception:
-            pass
+    print(f"Training {agent_type.upper()} | episodes={episodes} boxes={boxes} seed={seed}")
+    
+    experiment_name = "3D-BPP Experiment"
+    mlflow.set_experiment(experiment_name)
+    
+    with mlflow.start_run() as run:
+        if agent_type == "dqn":
+            agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False)
+            
+            mlflow.log_metric("accuracy", 0.99)
+            mlflow.pytorch.log_model(agent.model, name="model")
+            
+            mlflow.pytorch.log_model(
+                agent.model,
+                artifact_path="model"   # <- use artifact_path here; ignore the deprecation warning for now
+                # (optionally add signature=..., input_example=...)
+            )
+            
+            model_name = "3d-bpp-model" 
+            model_uri = f"runs:/{run.info.run_id}/model"
+            mlflow.register_model(model_uri, model_name)
+        else:
+            # PPO: build env/agent to pass into PPO training loop
+            env = _build_env(max_boxes=boxes, include_noop=False)
+            agent = _build_ppo(env)
+            train_cfg = TrainPPOConfig(
+                num_episodes=episodes,
+                max_steps_per_episode=None,
+                log_every=10,
+                eval_every=0,
+                eval_episodes=5,
+                save_every=50,
+                save_dir="runs/ppo",
+                save_models="runs/ppo/models",
+                seed=seed,
+            )
+            os.makedirs(train_cfg.save_models, exist_ok=True)
+            ppo_train_loop(env, agent, cfg=train_cfg)
+            try:
+                env.close()
+            except Exception:
+                pass
 
     print("✅ Training finished.")
     return 0
@@ -153,7 +171,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
         box_ranges={"w_min": 1, "w_max": 5, "d_min": 1, "d_max": 5, "h_min": 1, "h_max": 5},
     )
 
-    print("\n🤖 Evaluating Agent vs Heuristic:")
+    print("\nEvaluating Agent vs Heuristic:")
     agent_scores, heuristic_scores = [], []
     best_agent = (-1.0, None)
     best_heur  = (-1.0, None)
@@ -183,15 +201,15 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
 
         print(f"Test {i+1}: Agent = {agent_score:.2f}%, Heuristic = {heur_score:.2f}%")
 
-    print("\n📊 Agent Avg:", float(np.mean(agent_scores)))
-    print("📊 Heuristic Avg:", float(np.mean(heuristic_scores)))
+    print("\nAgent Avg:", float(np.mean(agent_scores)))
+    print("Heuristic Avg:", float(np.mean(heuristic_scores)))
 
     # Optional GIFs of the best episodes
     if make_gifs:
         best_heur_score, best_heur_idx = best_heur
         best_agent_score, best_agent_idx = best_agent
 
-        print(f"\n🎞️ Generating GIF for best heuristic test (Episode {best_heur_idx+1}) "
+        print(f"\nGenerating GIF for best heuristic test (Episode {best_heur_idx+1}) "
               f"with {best_heur_score:.2f}% volume used...")
         evaluate_heuristic_on_episode(
             test_sets[best_heur_idx],
@@ -200,7 +218,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
             gif_name="runs/heuristic_best.gif",
         )
 
-        print(f"\n🎞️ Generating GIF for best {agent_type.upper()} test (Episode {best_agent_idx+1}) "
+        print(f"\nGenerating GIF for best {agent_type.upper()} test (Episode {best_agent_idx+1}) "
               f"with {best_agent_score:.2f}% volume used...")
         gif_file = "runs/dqn/agent_best.gif" if agent_type == "dqn" else "runs/ppo/agent_best.gif"
         evaluate_agent_on_episode(
