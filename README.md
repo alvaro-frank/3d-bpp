@@ -149,7 +149,7 @@ make mlflow PORT=5000
 This will start the MLflow server at **http://127.0.0.1:5000** by default.
 
 What is Logged?
-Every time you run make train, a new experiment run is created logging:
+Every time you run `make train`, a new experiment run is created logging:
 
 **Metrics**:
 - `volume_utilization`: % of bin volume filled.
