@@ -119,7 +119,7 @@ You can target a specific checkpoint and adjust evaluation settings:
 | Arg        | Purpose                                            | Default         | Examples |
 |------------|----------------------------------------------------|-----------------|----------|
 | `AGENT`    | Which agent’s directory/model to use               | `dqn`           | `AGENT=ppo` |
-| `MODEL`    | Path to a specific checkpoint to evaluate          | *(best/latest)* | `MODEL=runs/ppo/dqn_best.pt` |
+| `MODEL`    | Path to a specific checkpoint to evaluate          | *(best/latest)* | `MODEL=runs/ppo/ppo_best.pt` |
 | `TESTS`    | Number of evaluation episodes (test cases)         | `41`            | `TESTS=50` |
 | `BOXES`    | Number of boxes per evaluation episode             | `50`            | `BOXES=100` |
 | `SEED`     | Random seed for evaluation                         | `41`            | `SEED=123` |
