@@ -79,7 +79,7 @@ make setup
 ```
 
 ### 🧠 Training
-Train an RL agent (DQN or PPO) on the 3D Bin Packing environment:
+Train a RL agent (DQN or PPO) on the 3D Bin Packing environment:
 
 ```bash
 make train
