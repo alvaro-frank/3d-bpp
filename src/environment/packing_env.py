@@ -213,18 +213,26 @@ class PackingEnv(gym.Env):
             self.skipped_boxes.append(self.current_box)
             self.current_step += 1
             done = self.current_step >= self.max_boxes
+            
             if done:
-                reward = 10 * self.calculate_utilization_ratio()
-                finalize_gif(self.gif_dir, self.gif_name, fps=2)
+                if len(self.packed_boxes) == self.max_boxes:
+                    reward += 10.0
+                
+                if self.generate_gif:
+                    finalize_gif(self.gif_dir, self.gif_name, fps=2)
+                
                 obs = np.zeros(self._obs_length(), dtype=np.float32)
             else:
                 self.current_box = self.boxes[self.current_step]
+                
                 obs = self._get_obs()
+            
             return obs, reward, done, info
 
         x, y, rot = self.discrete_actions[action_idx]
 
         prev_compactness = self.calculate_compactness(self.bin.boxes)
+        prev_max_h = self.current_max_height()
 
         success = self.bin.place_box(self.current_box, (x, y), rot)
 
@@ -234,10 +242,25 @@ class PackingEnv(gym.Env):
             self.skipped_boxes.append(self.current_box)
         # If placement succeeded
         else:
+            vol_ratio = self.current_box.get_volume() / self.total_boxes_volume
+            r_vol = vol_ratio * 10.0
+            
             new_compactness = self.calculate_compactness(self.bin.boxes)
             delta_compactness = new_compactness - prev_compactness
+            r_comp = delta_compactness * 1.0
+            
+            new_max_h = self.current_max_height()
+            delta_h = new_max_h - prev_max_h
+            normalized_delta_h = delta_h / self.bin.height
+            r_height = - (normalized_delta_h * 1.0)
+            
+            w, d, h = self.dims_after_rotation(self.current_box, rot)
+            box_surface_area = 2 * (w*d + w*h + d*h)
+            
+            contact_area = self.calculate_contact_area(self.current_box)
+            r_contact = (contact_area / box_surface_area) * 2.0
 
-            reward = 0.0
+            reward = r_vol + r_comp + r_height + r_contact
 
             if self.generate_gif:
                 frame_path = os.path.join(self.gif_dir, f"frame_{self.frame_count:04d}.png")
@@ -256,12 +279,16 @@ class PackingEnv(gym.Env):
 
         # Episode ends: add terminal utilization bonus
         if done:
-            reward = 10 * self.calculate_utilization_ratio()
-            finalize_gif(self.gif_dir, self.gif_name, fps=2)
+            if len(self.packed_boxes) == self.max_boxes:
+                reward += 10.0
+            if self.generate_gif:
+                finalize_gif(self.gif_dir, self.gif_name, fps=2)
+            
             obs = np.zeros(self._obs_length(), dtype=np.float32)
         # Otherwise load next box and continue
         else:
             self.current_box = self.boxes[self.current_step]
+            
             obs = self._get_obs()
 
         return obs, reward, done, info
@@ -340,23 +367,42 @@ class PackingEnv(gym.Env):
             return 0.0
 
         return packed_volume / bounding_volume
-
-    def get_terminal_reward(self):
-        """
-        Compute terminal reward at episode end.
-
-        Returns:
-            float: 10×utilization + 5×(placed_count / max_boxes).
-        """
-        packed_volume = sum(b.get_volume() for b in self.bin.boxes)
-        utilization = packed_volume / self.bin.bin_volume()
-
-        reward = 10 * utilization
-        reward += 5 * (len(self.bin.boxes) / self.max_boxes)
-
-        return reward
-
     
+    def calculate_contact_area(self, box):
+        bx, by, bz = box.position
+        bw, bd, bh = self.dims_after_rotation(box, box.rotation_type)
+        
+        contact_area = 0.0
+
+        if bz == 0:
+            contact_area += bw * bd
+            
+        if bx == 0: contact_area += bd * bh
+        if bx + bw == self.bin.width: contact_area += bd * bh
+        
+        if by == 0: contact_area += bw * bh
+        if by + bd == self.bin.depth: contact_area += bw * bh
+
+        for other in self.bin.boxes:
+            if other.id == box.id:
+                continue
+                
+            ox, oy, oz = other.position
+            ow, od, oh = self.dims_after_rotation(other, other.rotation_type)
+            
+            def overlap(c1, l1, c2, l2):
+                return max(0.0, min(c1 + l1, c2 + l2) - max(c1, c2))
+
+            if (bx == ox + ow) or (bx + bw == ox):
+                contact_area += overlap(by, bd, oy, od) * overlap(bz, bh, oz, oh)
+
+            if (by == oy + od) or (by + bd == oy):
+                contact_area += overlap(bx, bw, ox, ow) * overlap(bz, bh, oz, oh)
+                
+            if (bz == oz + oh) or (bz + bh == oz):
+                contact_area += overlap(bx, bw, ox, ow) * overlap(by, bd, oy, od)
+                
+        return contact_area
 
     def dims_after_rotation(self, box, rot):
         """
