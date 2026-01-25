@@ -1,32 +1,38 @@
 import json
 from pathlib import Path
 import numpy as np
+from utils.box_generator import generate_boxes
 
-
-def make_test_sets(seed: int, n_episodes: int, n_boxes: int, box_ranges: dict):
+def make_test_sets(seed: int, n_episodes: int, n_boxes: int, bin_size=(10, 10, 10)):
     """
-    Create deterministic test sets for reproducible evaluation.
-
+    Create deterministic test sets using Recursive Splitting (Structured).
+    
     Args:
-    - seed (int): RNG seed for reproducibility
-    - n_episodes (int): number of episodes to generate
-    - n_boxes (int): number of boxes per episode
-    - box_ranges (dict): min/max ranges for box dimensions
-
-    Returns:
-    - list of episodes, where each episode is a list of dicts:
-      [{"w": ..., "d": ..., "h": ...}, ...]
+    - bin_size: Tuple (w, d, h) of the bin we want to fill perfectly.
     """
-    rng = np.random.default_rng(seed)
+    # Nota: box_ranges é ignorado aqui porque o recursive splitting define os tamanhos
+    # com base no tamanho do contentor.
+    
     sets = []
-    for _ in range(n_episodes):
-        ep = []
-        for _ in range(n_boxes):
-            w = int(rng.integers(box_ranges["w_min"], box_ranges["w_max"] + 1))
-            h = int(rng.integers(box_ranges["d_min"], box_ranges["d_max"] + 1))
-            d = int(rng.integers(box_ranges["h_min"], box_ranges["h_max"] + 1))
-            ep.append({"w": w, "d": d, "h": h})
+    
+    # Geramos seeds determinísticas para cada episódio a partir da seed mestra
+    master_rng = np.random.default_rng(seed)
+    episode_seeds = master_rng.integers(0, 1000000, size=n_episodes)
+
+    for i in range(n_episodes):
+        # Usamos o generate_boxes com structured=True
+        # Isto garante que as caixas geradas SOMAM o volume do bin_size
+        raw_boxes = generate_boxes(
+            bin_size=bin_size, 
+            num_items=n_boxes, 
+            seed=int(episode_seeds[i]), 
+            structured=True
+        )
+        
+        # Converter de lista [w,d,h] para dicionário {"w":..., "d":..., "h":...}
+        ep = [{"w": b[0], "d": b[1], "h": b[2]} for b in raw_boxes]
         sets.append(ep)
+        
     return sets
 
 
