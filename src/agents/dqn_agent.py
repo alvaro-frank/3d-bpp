@@ -12,7 +12,7 @@ class DQN(nn.Module):
     A feedforward neural network that maps input states to Q-values,
     where each Q-value corresponds to the expected return of taking an action.
     """
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, map_size=(10,10)):
         """
         Initialize the network.
 
@@ -21,12 +21,28 @@ class DQN(nn.Module):
             output_dim (int): Number of discrete actions.
         """
         super(DQN, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 128), # first hidden layer
+        
+        self.map_w, self.map_d = map_size
+        self.map_area = self.map_w * self.map_d
+        
+        self.extra_features_len = input_dim - self.map_area
+        
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Linear(128, 128), # second hidden layer
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Linear(128, output_dim) # output: Q-value for each action
+            nn.Flatten()
+        )
+        
+        cnn_out_dim = 32 * self.map_w * self.map_d
+        
+        self.fc = nn.Sequential(
+            nn.Linear(cnn_out_dim + self.extra_features_len, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim)
         )
 
     def forward(self, x):
@@ -39,8 +55,16 @@ class DQN(nn.Module):
         Returns:
             torch.Tensor: Predicted Q-values of shape (batch_size, output_dim).
         """
-        return self.net(x)
-
+        heightmap_flat = x[:, :self.map_area]
+        extra_features = x[:, self.map_area:]
+        
+        heightmap_img = heightmap_flat.view(-1, 1, self.map_w, self.map_d)
+        
+        conv_out = self.conv(heightmap_img)
+        
+        combined = torch.cat([conv_out, extra_features], dim=1)
+      
+        return self.fc(combined)
 
 class DQNAgent:
     """
@@ -49,7 +73,7 @@ class DQNAgent:
     Manages experience replay, epsilon/softmax exploration, and
     training of an online Q-network with a target network for stability.
     """
-    def __init__(self, state_dim, action_dim, device='cpu', exploration="epsilon"):
+    def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', exploration="epsilon"):
         """
         Initialize the agent.
 
@@ -60,11 +84,12 @@ class DQNAgent:
             exploration (str): Exploration strategy ('epsilon' or 'softmax').
         """
         self.device = device
+        self.map_size = map_size
         # Online network (learned Q-function)
-        self.model = DQN(state_dim, action_dim).to(device)
+        self.model = DQN(state_dim, action_dim, map_size=map_size).to(device)
         
         # Target network (updated less frequently to stabilize learning)
-        self.target_model = DQN(state_dim, action_dim).to(device)
+        self.target_model = DQN(state_dim, action_dim, map_size=map_size).to(device)
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
 

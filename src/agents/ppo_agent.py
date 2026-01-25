@@ -73,9 +73,9 @@ def categorical_sample_from_masked_logits(logits: torch.Tensor, mask: Optional[t
     logp = dist.log_prob(action)
     return action, logp
 
-class MLPActorCritic(nn.Module):
+class CNNActorCritic(nn.Module):
     """
-    Simple MLP actor-critic with shared body and separate policy/value heads.
+    Simple CNN actor-critic with shared body and separate policy/value heads.
 
     - Policy head outputs **logits** over discrete actions.
     - Value head outputs a scalar state value.
@@ -86,62 +86,75 @@ class MLPActorCritic(nn.Module):
         hidden_sizes: Sizes of hidden layers for the shared body.
         layer_norm: Whether to apply LayerNorm after each Linear.
     """
-    def __init__(self, obs_dim: int, act_dim: int, hidden_sizes=(256, 256), layer_norm=False):
+    def __init__(self, obs_dim: int, act_dim: int, map_size=(10, 10), hidden_sizes=(256, 256), layer_norm=False):
         super().__init__()
-        layers: List[nn.Module] = []
-        last = obs_dim
-        for h in hidden_sizes:
-            layers += [nn.Linear(last, h)]
-            if layer_norm:
-                layers += [nn.LayerNorm(h)]
-            layers += [nn.ReLU()]
-            last = h
-        self.body = nn.Sequential(*layers)
-        self.pi_head = nn.Linear(last, act_dim) 
-        self.v_head = nn.Linear(last, 1)
+        self.map_w, self.map_d = map_size
+        self.map_area = self.map_w * self.map_d
+        
+        self.extra_features_len = obs_dim - self.map_area
 
+        # --- Extrator de Features CNN (Partilhado) ---
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Flatten()
+        )
+        
+        cnn_out_dim = 32 * self.map_w * self.map_d
+
+        # Dimensão após juntar CNN + Vetor Extra
+        combined_dim = cnn_out_dim + self.extra_features_len
+
+        # --- Corpo MLP (Partilhado) ---
+        self.shared_fc = nn.Sequential(
+            nn.Linear(combined_dim, hidden_sizes[0]),
+            nn.ReLU(),
+            nn.Linear(hidden_sizes[0], hidden_sizes[1]),
+            nn.ReLU()
+        )
+
+        last_dim = hidden_sizes[1]
+
+        # --- Cabeças ---
+        self.pi_head = nn.Linear(last_dim, act_dim)
+        self.v_head = nn.Linear(last_dim, 1)
+
+        # Inicialização ortogonal
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.orthogonal_(m.weight, gain=nn.init.calculate_gain('relu') if m is not self.pi_head and m is not self.v_head else 1.0)
+                nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
                 nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        
+        nn.init.orthogonal_(self.pi_head.weight, gain=0.01)
+        nn.init.orthogonal_(self.v_head.weight, gain=1.0)
 
     def forward(self, obs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Compute policy logits and value for a batch of observations.
+        # Separar e Reshape
+        heightmap_flat = obs[:, :self.map_area]
+        extra_features = obs[:, self.map_area:]
+        heightmap_img = heightmap_flat.view(-1, 1, self.map_w, self.map_d)
 
-        Args:
-            obs: Tensor of shape (B, obs_dim).
+        # CNN
+        conv_out = self.conv(heightmap_img)
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - logits: Tensor of shape (B, act_dim), unnormalized action scores.
-                - value:  Tensor of shape (B,), scalar value estimates.
-        """
-        x = self.body(obs)
+        # Combinar
+        combined = torch.cat([conv_out, extra_features], dim=1)
+        
+        # Corpo Denso
+        x = self.shared_fc(combined)
+
+        # Cabeças
         logits = self.pi_head(x)
         value = self.v_head(x).squeeze(-1)
+        
         return logits, value
 
 @dataclass
 class PPOConfig:
-    """
-    Configuration for PPO training.
-
-    Attributes:
-        gamma: Discount factor.
-        gae_lambda: GAE(λ) parameter.
-        clip_eps: PPO clipping epsilon.
-        vf_coef: Coefficient for value loss.
-        ent_coef: Coefficient for entropy bonus.
-        lr: Learning rate for Adam.
-        max_grad_norm: Gradient clipping norm.
-        epochs: Number of optimization epochs per update.
-        minibatch_size: Minibatch size per epoch.
-        hidden_sizes: Hidden layer sizes for the MLP body.
-        layer_norm: Whether to use LayerNorm.
-        device: Torch device ('cpu' or 'cuda').
-        advantage_norm_eps: Epsilon to avoid division by zero when normalizing advantages.
-    """
     gamma: float = 0.99
     gae_lambda: float = 0.95
     clip_eps: float = 0.2
@@ -157,44 +170,25 @@ class PPOConfig:
     advantage_norm_eps: float = 1e-8
 
 class PPOAgent:
-    """
-    Proximal Policy Optimization (PPO) agent with invalid-action masking.
-
-    API (compatible with your DQN agent):
-        - get_action(state, action_space, mask=None) -> int
-        - store_transition(state, action, reward, next_state, done, mask=None, logp=None, value=None)
-        - train(last_value=0.0) -> dict
-        - save(path), load(path)
-
-    Example:
-        >>> agent = PPOAgent(obs_dim=obs, act_dim=acts)
-        >>> a = agent.get_action(state, action_space, mask=valid_mask)
-        >>> agent.store_transition(state, a, reward, next_state, done, mask=valid_mask)
-        >>> metrics = agent.train(last_value=bootstrap_v)
-    """
-    def __init__(self, obs_dim: int, act_dim: int, config: Optional[PPOConfig] = None):
+    def __init__(self, obs_dim: int, act_dim: int, map_size=(10, 10), config: Optional[PPOConfig] = None):
         """
-        Initialize the PPO agent and its networks/optimizer.
-
         Args:
-            obs_dim: Observation dimension.
-            act_dim: Number of discrete actions.
-            config: Optional PPOConfig; defaults are used if not provided.
+            map_size: Dimensões do contentor para reconstrução da imagem (W, D).
         """
         self.config = config or PPOConfig()
         self.device = torch.device(self.config.device)
 
-        self.model = MLPActorCritic(
+        # Inicializa com a nova CNNActorCritic
+        self.model = CNNActorCritic(
             obs_dim=obs_dim,
             act_dim=act_dim,
-            hidden_sizes=self.config.hidden_sizes,
-            layer_norm=self.config.layer_norm
+            map_size=map_size,
+            hidden_sizes=self.config.hidden_sizes
         ).to(self.device)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
 
         self.reset_buffer()
-
         self.act_dim = act_dim
         self.obs_dim = obs_dim
 
