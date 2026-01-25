@@ -27,7 +27,9 @@ def _build_dqn(env, exploration: str = "softmax"):
     state_dim = int(np.prod(env.observation_space.shape))
     # Prefer the true action dimension from the env (handles noop consistently)
     act_dim = env.action_space.n if hasattr(env, "action_space") else len(getattr(env, "discrete_actions", []))
-    return DQNAgent(state_dim, act_dim, exploration=exploration)
+    map_size = (env.bin_size[0], env.bin_size[1])
+
+    return DQNAgent(state_dim, act_dim, map_size=map_size, exploration=exploration)
 
 def _build_ppo(env):
     obs_dim = int(np.prod(env.observation_space.shape))
@@ -38,7 +40,9 @@ def _build_ppo(env):
         epochs=4, minibatch_size=1024,
         device="cuda" if torch.cuda.is_available() else "cpu",
     )
-    return PPOAgent(obs_dim=obs_dim, act_dim=act_dim, config=ppo_cfg)
+    map_size = (env.bin_size[0], env.bin_size[1])
+
+    return PPOAgent(obs_dim=obs_dim, act_dim=act_dim, map_size=map_size, config=ppo_cfg)
 
 def _extract_state_dict(ckpt):
     """
@@ -89,7 +93,7 @@ def _auto_find_checkpoint(agent_type: str) -> str | None:
 
 
 # --------------------------- commands ---------------------------------
-def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
+def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model: str | None):
     seed_all(seed)
     print(f"Training {agent_type.upper()} | episodes={episodes} boxes={boxes} seed={seed}")
     
@@ -112,6 +116,11 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int):
             # PPO: build env/agent to pass into PPO training loop
             env = _build_env(max_boxes=boxes, include_noop=False)
             agent = _build_ppo(env)
+
+            if load_model is not None:
+                _load_weights_ppo(agent, load_model)
+                print(f"Loaded PPO weights from: {load_model}")
+
             train_cfg = TrainPPOConfig(
                 num_episodes=episodes,
                 max_steps_per_episode=None,
@@ -172,8 +181,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     out_dir = Path("runs")
     out_dir.mkdir(parents=True, exist_ok=True)
     test_sets = make_test_sets(
-        seed=seed, n_episodes=tests, n_boxes=boxes,
-        box_ranges={"w_min": 1, "w_max": 5, "d_min": 1, "d_max": 5, "h_min": 1, "h_max": 5},
+        seed=seed, n_episodes=tests, n_boxes=boxes, bin_size=(10,10,10)
     )
 
     print("\nEvaluating Agent vs Heuristic:")
@@ -182,7 +190,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     best_heur  = (-1.0, None)
 
     for i, episode_boxes in enumerate(test_sets):
-        env_seed = seed + i
+        env_seed = seed + i 
         agent_score = evaluate_agent_on_episode(
             agent,
             episode_boxes,
@@ -259,6 +267,7 @@ def main():
     p_train.add_argument("--episodes", type=int, default=200)
     p_train.add_argument("--boxes", type=int, default=50)
     p_train.add_argument("--seed", type=int, default=41)
+    p_train.add_argument("--load", type=str, default=None)
 
     # evaluate
     p_eval = sub.add_parser("evaluate", help="Evaluate an agent vs heuristic")
@@ -272,7 +281,7 @@ def main():
     args = parser.parse_args()
 
     if args.cmd == "train":
-        return cmd_train(args.agent, args.episodes, args.boxes, args.seed)
+        return cmd_train(args.agent, args.episodes, args.boxes, args.seed, args.load)
     else:
         return cmd_evaluate(args.agent, args.boxes, args.tests, args.seed, args.model, args.gifs)
 
