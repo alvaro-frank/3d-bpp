@@ -215,8 +215,23 @@ class PackingEnv(gym.Env):
             done = self.current_step >= self.max_boxes
             
             if done:
-                if len(self.packed_boxes) == self.max_boxes:
-                    reward += 10.0
+                packed_count = len(self.packed_boxes)
+                missing_boxes = self.max_boxes - packed_count
+                
+                # Se encaixou TUDO (Jackpot)
+                if missing_boxes == 0:
+                    reward += 20.0  # Aumenta para 20 para ser irresistível
+                
+                # Se falhou por apenas UMA caixa (incentivo forte)
+                elif missing_boxes == 1:
+                    reward += 5.0   # "Quase lá!"
+                
+                # Se falhou por DUAS caixas (incentivo médio)
+                elif missing_boxes == 2:
+                    reward += 2.0
+                    
+                if packed_count < (self.max_boxes / 2):
+                 reward -= 5.0
                 
                 if self.generate_gif:
                     finalize_gif(self.gif_dir, self.gif_name, fps=2)
@@ -279,8 +294,24 @@ class PackingEnv(gym.Env):
 
         # Episode ends: add terminal utilization bonus
         if done:
-            if len(self.packed_boxes) == self.max_boxes:
-                reward += 10.0
+            packed_count = len(self.packed_boxes)
+            missing_boxes = self.max_boxes - packed_count
+            
+            # Se encaixou TUDO (Jackpot)
+            if missing_boxes == 0:
+                reward += 20.0  # Aumenta para 20 para ser irresistível
+            
+            # Se falhou por apenas UMA caixa (incentivo forte)
+            elif missing_boxes == 1:
+                reward += 5.0   # "Quase lá!"
+            
+            # Se falhou por DUAS caixas (incentivo médio)
+            elif missing_boxes == 2:
+                reward += 2.0
+                
+            if packed_count < (self.max_boxes / 2):
+                 reward -= 5.0
+                 
             if self.generate_gif:
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
             
