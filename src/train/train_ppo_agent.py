@@ -257,6 +257,7 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
             "return": ep_ret,
             "length": ep_len,
             "time_sec": time.time() - t0,
+            "boxes_placed": boxes_placed,
         }
         if ppo_metrics:
             log.update({f"ppo/{k}": float(v) for k, v in ppo_metrics.items()})
@@ -266,7 +267,9 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
             recent = history[-cfg.log_every:] if len(history) >= cfg.log_every else history
             avg_ret = float(np.mean([h["return"] for h in recent]))
             avg_len = float(np.mean([h["length"] for h in recent]))
-            print(f"[PPO] Ep {ep:5d} | R(avg) {avg_ret:8.3f} | L(avg) {avg_len:6.1f}")
+            avg_boxes = float(np.mean([h["boxes_placed"] for h in recent]))
+            
+            print(f"[PPO] Ep {ep:5d} | R(avg) {avg_ret:8.3f} | L(avg) {avg_len:6.1f} | B(avg) {avg_boxes:5.1f}")
 
         if cfg.eval_every and (ep % cfg.eval_every == 0):
             try:
