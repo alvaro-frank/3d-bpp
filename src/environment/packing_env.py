@@ -217,21 +217,23 @@ class PackingEnv(gym.Env):
             if done:
                 packed_count = len(self.packed_boxes)
                 missing_boxes = self.max_boxes - packed_count
+                ratio = packed_count / self.max_boxes
                 
-                # Se encaixou TUDO (Jackpot)
-                if missing_boxes == 0:
-                    reward += 20.0  # Aumenta para 20 para ser irresistível
-                
-                # Se falhou por apenas UMA caixa (incentivo forte)
-                elif missing_boxes == 1:
-                    reward += 5.0   # "Quase lá!"
-                
-                # Se falhou por DUAS caixas (incentivo médio)
-                elif missing_boxes == 2:
+                # Degrau 1: "Bom" (> 80% preenchido) -> Ex: > 24 caixas (em 30)
+                if ratio >= 0.8:
                     reward += 2.0
-                    
-                if packed_count < (self.max_boxes / 2):
-                 reward -= 5.0
+                
+                # Degrau 2: "Muito Bom" (> 90% preenchido) -> Ex: > 27 caixas (em 30)
+                if ratio >= 0.9:
+                    reward += 3.0  # Acumula com o anterior (Total +5.0)
+                
+                # Degrau 3: "Perfeito" (100%)
+                if ratio == 1.0:
+                    reward += 10.0 # Acumula (Total +15.0)
+
+                # Penalização se desistir muito cedo (< 50%)
+                if ratio < 0.5:
+                    reward -= 5.0
                 
                 if self.generate_gif:
                     finalize_gif(self.gif_dir, self.gif_name, fps=2)
@@ -296,21 +298,23 @@ class PackingEnv(gym.Env):
         if done:
             packed_count = len(self.packed_boxes)
             missing_boxes = self.max_boxes - packed_count
-            
-            # Se encaixou TUDO (Jackpot)
-            if missing_boxes == 0:
-                reward += 20.0  # Aumenta para 20 para ser irresistível
-            
-            # Se falhou por apenas UMA caixa (incentivo forte)
-            elif missing_boxes == 1:
-                reward += 5.0   # "Quase lá!"
-            
-            # Se falhou por DUAS caixas (incentivo médio)
-            elif missing_boxes == 2:
-                reward += 2.0
+            ratio = packed_count / self.max_boxes
                 
-            if packed_count < (self.max_boxes / 2):
-                 reward -= 5.0
+            # Degrau 1: "Bom" (> 80% preenchido) -> Ex: > 24 caixas (em 30)
+            if ratio >= 0.8:
+                reward += 2.0
+            
+            # Degrau 2: "Muito Bom" (> 90% preenchido) -> Ex: > 27 caixas (em 30)
+            if ratio >= 0.9:
+                reward += 3.0  # Acumula com o anterior (Total +5.0)
+            
+            # Degrau 3: "Perfeito" (100%)
+            if ratio == 1.0:
+                reward += 10.0 # Acumula (Total +15.0)
+
+            # Penalização se desistir muito cedo (< 50%)
+            if ratio < 0.5:
+                reward -= 5.0
                  
             if self.generate_gif:
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
