@@ -1,8 +1,18 @@
+# ==============================================================================
+# FILE: utils/visualization.py
+# DESCRIPTION: 3D Rendering and animation utilities for the Bin Packing problem.
+#              Uses Matplotlib for static plots and ImageIO for GIF generation.
+# ==============================================================================
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import os
 import imageio
 import shutil
+
+# ------------------------------------------------------------------------------
+# 3D PLOTTING FUNCTIONS
+# ------------------------------------------------------------------------------
 
 def plot_bin(boxes, bin_size, save_path=None, title=""):
     """
@@ -12,13 +22,10 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
     Useful for debugging, monitoring training progress, or generating GIFs.
 
     Args:
-    - boxes (list): list of Box objects (each with .position and .get_rotated_size())
-    - bin_size (tuple): dimensions of the bin (width, height, depth)
-    - save_path (str, optional): if provided, save the plot as an image to this path
-    - title (str, optional): title to display on the figure
-
-    Returns:
-    - None (displays or saves the plot)
+        boxes (list): list of Box objects (each with .position and .get_rotated_size())
+        bin_size (tuple): dimensions of the bin (width, height, depth)
+        save_path (str, optional): path to save the plot as an image.
+        title (str, optional): title to display on the figure.
     """
     
     # Create a new 3D figure
@@ -47,7 +54,7 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
         r = [
             [x, x + w], # X range
             [y, y + h], # Y range
-            [z, z + d] # Z range
+            [z, z + d]  # Z range
         ]
         
         # Compute the 8 corner vertices of the cuboid
@@ -69,7 +76,7 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
             [vertices[0], vertices[1], vertices[5], vertices[4]], # front
             [vertices[2], vertices[3], vertices[7], vertices[6]], # back
             [vertices[1], vertices[2], vertices[6], vertices[5]], # right
-            [vertices[4], vertices[7], vertices[3], vertices[0]] # left
+            [vertices[4], vertices[7], vertices[3], vertices[0]]  # left
         ]
 
         # Choose a color for this box
@@ -88,17 +95,18 @@ def plot_bin(boxes, bin_size, save_path=None, title=""):
     else:
         plt.show()
 
+# ------------------------------------------------------------------------------
+# GIF GENERATION & CLEANUP
+# ------------------------------------------------------------------------------
+
 def create_gif(frame_folder, gif_name="packing.gif", fps=2):
     """
     Create a GIF from saved .png frames in a folder.
 
-    Parameters:
-    - frame_folder (str): path to folder containing frames
-    - gif_name (str): name of the output GIF file
-    - fps (int): frames per second
-
-    Returns:
-    - None (saves the GIF to disk)
+    Args:
+        frame_folder (str): path to folder containing frames.
+        gif_name (str): name of the output GIF file.
+        fps (int): frames per second.
     """
     frames = []
     files = sorted([f for f in os.listdir(frame_folder) if f.endswith(".png")])
@@ -111,16 +119,12 @@ def create_gif(frame_folder, gif_name="packing.gif", fps=2):
 
 def finalize_gif(gif_dir, gif_name, fps=2):
     """
-    Compile all saved .png frames from a folder into a single GIF file
-    and clean up the temporary frame directory.
+    Compile saved .png frames into a single GIF and clean up temporary files.
 
-    Parameters:
-    - gif_dir (str): path to the folder containing saved frames
-    - gif_name (str): filename for the output GIF
-    - fps (int): frames per second of the output GIF
-
-    Returns:
-    - None (saves the GIF file and deletes the temporary frames)
+    Args:
+        gif_dir (str): path to the folder containing saved frames.
+        gif_name (str): filename for the output GIF.
+        fps (int): frames per second of the output GIF.
     """
     if not os.path.exists(gif_dir):
         return
