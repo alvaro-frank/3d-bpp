@@ -1,4 +1,9 @@
-# src/main.py
+# ==============================================================================
+# FILE: main.py
+# DESCRIPTION: Entry point for the 3D-BPP (3D Bin Packing Problem) project.
+#              Provides a CLI to train DQN/PPO agents or evaluate them against 
+#              heuristic baselines using MLflow for experiment tracking.
+# ==============================================================================
 import os
 from pathlib import Path
 import argparse
@@ -19,13 +24,14 @@ from train.train_ppo_agent import train_ppo_agent as ppo_train_loop, TrainPPOCon
 from agents.dqn_agent import DQNAgent
 
 
-# ---------------------------- helpers ---------------------------------
+# ------------------------------------------------------------------------------
+# MODEL & ENVIRONMENT BUILDERS
+# ------------------------------------------------------------------------------
 def _build_env(max_boxes: int, include_noop: bool = False):
     return PackingEnv(max_boxes=max_boxes, include_noop=include_noop)
 
 def _build_dqn(env, exploration: str = "softmax"):
     state_dim = int(np.prod(env.observation_space.shape))
-    # Prefer the true action dimension from the env (handles noop consistently)
     act_dim = env.action_space.n if hasattr(env, "action_space") else len(getattr(env, "discrete_actions", []))
     map_size = (env.bin_size[0], env.bin_size[1])
 
@@ -44,15 +50,12 @@ def _build_ppo(env):
 
     return PPOAgent(obs_dim=obs_dim, act_dim=act_dim, map_size=map_size, config=ppo_cfg)
 
+# ------------------------------------------------------------------------------
+# CHECKPOINT & WEIGHT LOADING
+# ------------------------------------------------------------------------------
+
 def _extract_state_dict(ckpt):
-    """
-    Return a model state_dict from a variety of checkpoint formats.
-    Supported keys (in order of preference):
-      - "model"
-      - "model_state_dict"
-      - "state_dict"
-      - raw state_dict (mapping of parameter tensors)
-    """
+    """Return a model state_dict from a variety of checkpoint formats."""
     if isinstance(ckpt, dict):
         for k in ("model", "model_state_dict", "state_dict"):
             if k in ckpt and isinstance(ckpt[k], dict):
@@ -92,7 +95,10 @@ def _auto_find_checkpoint(agent_type: str) -> str | None:
     return candidates[-1] if candidates else None
 
 
-# --------------------------- commands ---------------------------------
+# ------------------------------------------------------------------------------
+# COMMAND: TRAIN
+# ------------------------------------------------------------------------------
+
 def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model: str | None):
     seed_all(seed)
     print(f"Training {agent_type.upper()} | episodes={episodes} boxes={boxes} seed={seed}")
@@ -151,6 +157,9 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model:
     print("Training finished.")
     return 0
 
+# ------------------------------------------------------------------------------
+# COMMAND: EVALUATE
+# ------------------------------------------------------------------------------
 
 def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path: str | None, make_gifs: bool):
     """
@@ -251,7 +260,9 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     return 0
 
 
-# ----------------------------- CLI ------------------------------------
+# ------------------------------------------------------------------------------
+# MAIN EXECUTION (CLI)
+# ------------------------------------------------------------------------------
 def main():
     """
     CLI with two independent commands:
