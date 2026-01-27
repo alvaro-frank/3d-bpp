@@ -1,3 +1,9 @@
+# ==============================================================================
+# FILE: environment/packing_env.py
+# DESCRIPTION: 3D Bin Packing Environment using the OpenAI Gym interface.
+#              Manages the bin state, box queue, and reinforcement learning rewards.
+# ==============================================================================
+
 import numpy as np
 import random
 import gym
@@ -92,6 +98,9 @@ class PackingEnv(gym.Env):
 
         return heightmap_len + upcoming_len + stats_len
 
+    # --------------------------------------------------------------------------
+    # CORE GYM METHODS
+    # --------------------------------------------------------------------------
 
     def reset(self, seed=None, with_boxes=None):
         """
@@ -139,55 +148,6 @@ class PackingEnv(gym.Env):
 
         return self._get_obs()
 
-    def _get_obs(self):
-        """
-        Build the observation vector.
-
-        Composition:
-            1) Heightmap (width×depth), normalized to [0,1] by bin height.
-            2) Upcoming box sizes: triplets (w,d,h) for current → lookahead;
-               padded with zeros to length lookahead*3.
-            3) Global stats:
-               - remaining_ratio: (max_boxes - current_step)/max_boxes
-               - utilization: placed_volume / bin_volume
-               - normalized_max_height: current_max_height / bin.height
-
-        Returns:
-            np.ndarray: Flattened observation.
-        """
-        # 1) Heightmap encoding (width × depth)
-        heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
-        for b in self.bin.boxes:
-            x, y, z = b.position
-            bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
-            assert x + bw <= self.bin.width and y + bd <= self.bin.depth, \
-                f"Box fora dos limites no _get_obs: (x={x},y={y}) + (bw={bw},bd={bd}) vs (W={self.bin.width},D={self.bin.depth})"
-            for dx in range(bw):
-                for dy in range(bd):
-                    heightmap[x + dx, y + dy] = max(heightmap[x + dx, y + dy], z + bh)
-        heightmap = heightmap.flatten() / self.bin.height  # normalize 0..1
-
-        # 2) Upcoming box sizes
-        upcoming = []
-        if self.current_step < self.max_boxes:
-            for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
-                b = self.boxes[i]
-                upcoming.extend([b.width, b.depth, b.height])
-        while len(upcoming) < self.lookahead * 3:
-            upcoming.extend([0, 0, 0])
-        upcoming = np.array(upcoming, dtype=np.float32)
-
-        # 3) Global stats
-        stats = np.array([
-            (self.max_boxes - self.current_step) / self.max_boxes,   # remaining ratio
-            self.get_placed_boxes_volume() / self.bin.bin_volume(),  # utilization
-            self.current_max_height() / self.bin.height              # normalized max height
-        ], dtype=np.float32)
-
-        obs = np.concatenate([heightmap, upcoming, stats])
-
-        return obs
-
     def step(self, action_idx):
         """
         Apply a discrete action (x, y, rotation) or NO-OP and advance the environment.
@@ -196,15 +156,7 @@ class PackingEnv(gym.Env):
             action_idx (int): Index in the discrete action set.
 
         Returns:
-            tuple:
-                - observation (np.ndarray): Next observation.
-                - reward (float): Reward for this step (terminal bonus at episode end).
-                - done (bool): Whether the episode is finished.
-                - info (dict): Extra info (e.g., success flag, noop flag).
-
-        Notes:
-            - On successful placement, the box is added and an intermediate reward may be applied.
-            - On failure or NO-OP, the box is skipped. Terminal reward adds a utilization bonus.
+            tuple: (observation, reward, done, info)
         """
     
         if self.include_noop and action_idx == self.NOOP_IDX:
@@ -216,24 +168,12 @@ class PackingEnv(gym.Env):
             
             if done:
                 packed_count = len(self.packed_boxes)
-                missing_boxes = self.max_boxes - packed_count
                 ratio = packed_count / self.max_boxes
                 
-                # Degrau 1: "Bom" (> 80% preenchido) -> Ex: > 24 caixas (em 30)
-                if ratio >= 0.8:
-                    reward += 2.0
-                
-                # Degrau 2: "Muito Bom" (> 90% preenchido) -> Ex: > 27 caixas (em 30)
-                if ratio >= 0.9:
-                    reward += 3.0  # Acumula com o anterior (Total +5.0)
-                
-                # Degrau 3: "Perfeito" (100%)
-                if ratio == 1.0:
-                    reward += 10.0 # Acumula (Total +15.0)
-
-                # Penalização se desistir muito cedo (< 50%)
-                if ratio < 0.5:
-                    reward -= 5.0
+                if ratio >= 0.8: reward += 2.0
+                if ratio >= 0.9: reward += 3.0
+                if ratio == 1.0: reward += 10.0
+                if ratio < 0.5: reward -= 5.0
                 
                 if self.generate_gif:
                     finalize_gif(self.gif_dir, self.gif_name, fps=2)
@@ -241,23 +181,19 @@ class PackingEnv(gym.Env):
                 obs = np.zeros(self._obs_length(), dtype=np.float32)
             else:
                 self.current_box = self.boxes[self.current_step]
-                
                 obs = self._get_obs()
             
             return obs, reward, done, info
 
         x, y, rot = self.discrete_actions[action_idx]
-
         prev_compactness = self.calculate_compactness(self.bin.boxes)
         prev_max_h = self.current_max_height()
 
         success = self.bin.place_box(self.current_box, (x, y), rot)
 
-        # If placement failed
         if not success:
             reward = 0.0
             self.skipped_boxes.append(self.current_box)
-        # If placement succeeded
         else:
             vol_ratio = self.current_box.get_volume() / self.total_boxes_volume
             r_vol = vol_ratio * 10.0
@@ -273,7 +209,6 @@ class PackingEnv(gym.Env):
             
             w, d, h = self.dims_after_rotation(self.current_box, rot)
             box_surface_area = 2 * (w*d + w*h + d*h)
-            
             contact_area = self.calculate_contact_area(self.current_box)
             r_contact = (contact_area / box_surface_area) * 2.0
 
@@ -288,248 +223,160 @@ class PackingEnv(gym.Env):
             self.packed_boxes.append(self.current_box)
 
         info = {"success": True}
-
-        # Move to the next box
         self.current_step += 1
-    
         done = self.current_step >= self.max_boxes
 
-        # Episode ends: add terminal utilization bonus
         if done:
             packed_count = len(self.packed_boxes)
-            missing_boxes = self.max_boxes - packed_count
             ratio = packed_count / self.max_boxes
-                
-            # Degrau 1: "Bom" (> 80% preenchido) -> Ex: > 24 caixas (em 30)
-            if ratio >= 0.8:
-                reward += 2.0
-            
-            # Degrau 2: "Muito Bom" (> 90% preenchido) -> Ex: > 27 caixas (em 30)
-            if ratio >= 0.9:
-                reward += 3.0  # Acumula com o anterior (Total +5.0)
-            
-            # Degrau 3: "Perfeito" (100%)
-            if ratio == 1.0:
-                reward += 10.0 # Acumula (Total +15.0)
-
-            # Penalização se desistir muito cedo (< 50%)
-            if ratio < 0.5:
-                reward -= 5.0
-                 
+            if ratio >= 0.8: reward += 2.0
+            if ratio >= 0.9: reward += 3.0
+            if ratio == 1.0: reward += 10.0
+            if ratio < 0.5: reward -= 5.0
             if self.generate_gif:
                 finalize_gif(self.gif_dir, self.gif_name, fps=2)
-            
             obs = np.zeros(self._obs_length(), dtype=np.float32)
-        # Otherwise load next box and continue
         else:
             self.current_box = self.boxes[self.current_step]
-            
             obs = self._get_obs()
 
         return obs, reward, done, info
 
     def render(self):
-        """
-        Print a simple text rendering of placed boxes (ID, position, rotation).
-        """
+        """Print a simple text rendering of placed boxes."""
         for b in self.bin.boxes:
-            # Each box shows its ID, position (x, y, z), and chosen rotation type
             print(f"Box {b.id} at {b.position}, rotated {b.rotation_type}")
 
-    def _generate_boxes(self, n):
+    # --------------------------------------------------------------------------
+    # OBSERVATION & INTERNAL UTILS
+    # --------------------------------------------------------------------------
+
+    def _get_obs(self):
         """
-        Generate a list of random boxes for the episode.
-
-        Args:
-            n (int): Number of boxes to generate.
-
-        Returns:
-            list[BinBox]: Generated boxes.
+        Build the observation vector: Heightmap + Upcoming boxes + Global Stats.
         """
-        raw_boxes = generate_boxes(self.bin_size, num_items=n, seed=random.randint(0, 10000), structured=True)
+        # 1) Heightmap encoding
+        heightmap = np.zeros((self.bin.width, self.bin.depth), dtype=np.float32)
+        for b in self.bin.boxes:
+            x, y, z = b.position
+            bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
+            for dx in range(bw):
+                for dy in range(bd):
+                    heightmap[x + dx, y + dy] = max(heightmap[x + dx, y + dy], z + bh)
+        heightmap = heightmap.flatten() / self.bin.height
 
-        boxes = [BinBox(width=w, depth=d, height=h, id=i) for i, (w, d, h) in enumerate(raw_boxes)]
+        # 2) Upcoming box sizes
+        upcoming = []
+        if self.current_step < self.max_boxes:
+            for i in range(self.current_step, min(self.current_step + self.lookahead, self.max_boxes)):
+                b = self.boxes[i]
+                upcoming.extend([b.width, b.depth, b.height])
+        while len(upcoming) < self.lookahead * 3:
+            upcoming.extend([0, 0, 0])
+        upcoming = np.array(upcoming, dtype=np.float32)
 
-        return boxes
+        # 3) Global stats
+        stats = np.array([
+            (self.max_boxes - self.current_step) / self.max_boxes,
+            self.get_placed_boxes_volume() / self.bin.bin_volume(),
+            self.current_max_height() / self.bin.height
+        ], dtype=np.float32)
 
-    def get_placed_boxes_volume(self):
-        """
-        Compute total volume of all currently placed boxes.
-
-        Returns:
-            float: Sum of volumes.
-        """
-        return sum(box.get_volume() for box in self.bin.boxes)
-
-    def calculate_utilization_ratio(self):
-        """
-        Compute used-volume ratio.
-
-        Returns:
-            float: Used volume / bin volume, in [0, 1].
-        """
-        packed_volume = sum(b.get_volume() for b in self.bin.boxes)
-        utilization = packed_volume / self.bin.bin_volume()
-        return utilization
-
-    
-    def calculate_compactness(self, boxes):
-        """
-        Absolute compactness in [0, 1]:
-        total placed volume / volume of their bounding box.
-
-        Args:
-            boxes (list[BinBox]): Boxes to evaluate.
-
-        Returns:
-            float: Compactness score (1.0 if ≤1 box).
-        """
-        if len(boxes) <= 1:
-            return 1.0
-
-        min_x = min(b.position[0] for b in boxes)
-        min_y = min(b.position[1] for b in boxes)
-        min_z = min(b.position[2] for b in boxes)
-
-        max_x = max(b.position[0] + b.width for b in boxes)
-        max_y = max(b.position[1] + b.height for b in boxes)
-        max_z = max(b.position[2] + b.depth for b in boxes)
-
-        bounding_volume = (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
-        packed_volume = sum(b.get_volume() for b in boxes)
-
-        if bounding_volume == 0:
-            return 0.0
-
-        return packed_volume / bounding_volume
-    
-    def calculate_contact_area(self, box):
-        bx, by, bz = box.position
-        bw, bd, bh = self.dims_after_rotation(box, box.rotation_type)
-        
-        contact_area = 0.0
-
-        if bz == 0:
-            contact_area += bw * bd
-            
-        if bx == 0: contact_area += bd * bh
-        if bx + bw == self.bin.width: contact_area += bd * bh
-        
-        if by == 0: contact_area += bw * bh
-        if by + bd == self.bin.depth: contact_area += bw * bh
-
-        for other in self.bin.boxes:
-            if other.id == box.id:
-                continue
-                
-            ox, oy, oz = other.position
-            ow, od, oh = self.dims_after_rotation(other, other.rotation_type)
-            
-            def overlap(c1, l1, c2, l2):
-                return max(0.0, min(c1 + l1, c2 + l2) - max(c1, c2))
-
-            if (bx == ox + ow) or (bx + bw == ox):
-                contact_area += overlap(by, bd, oy, od) * overlap(bz, bh, oz, oh)
-
-            if (by == oy + od) or (by + bd == oy):
-                contact_area += overlap(bx, bw, ox, ow) * overlap(bz, bh, oz, oh)
-                
-            if (bz == oz + oh) or (bz + bh == oz):
-                contact_area += overlap(bx, bw, ox, ow) * overlap(by, bd, oy, od)
-                
-        return contact_area
-
-    def dims_after_rotation(self, box, rot):
-        """
-        Return (w, d, h) after applying a rotation index, without mutating the box.
-
-        Args:
-            box (BinBox): Target box.
-            rot (int): Rotation index in [0..5].
-
-        Returns:
-            tuple[int, int, int]: Rotated dimensions (w, d, h).
-        """
-        w0, d0, h0 = box.width, box.depth, box.height
-        
-        rot = int(rot) % 6
-        if rot == 0:   # (w,d,h)
-            return w0, d0, h0
-        if rot == 1:   # (w,h,d)
-            return w0, h0, d0
-        if rot == 2:   # (d,w,h)
-            return d0, w0, h0
-        if rot == 3:   # (h,d,w)
-            return h0, d0, w0
-        if rot == 4:   # (d,h,w)
-            return d0, h0, w0
-        if rot == 5:   # (h,w,d)
-            return h0, w0, d0
-        
-        return w0, d0, h0
+        return np.concatenate([heightmap, upcoming, stats])
 
     def valid_action_mask(self):
-        """
-        Build a binary mask over actions indicating which placements are valid.
-
-        Rules:
-            - Checks bounds on (x, y) and height (z + h ≤ bin.height).
-            - Uses AABB overlap tests against already placed boxes.
-            - If no placement is valid and NO-OP is enabled, NO-OP is set valid.
-
-        Returns:
-            np.ndarray: Float mask of shape (action_space.n,) with 1.0 for valid, 0.0 for invalid.
-        """
+        """Build a binary mask indicating which placements are valid."""
         act_n = self.action_space.n
         mask = np.zeros(act_n, dtype=np.float32)
 
         if self.current_box is None:
-            if self.include_noop:
-                mask[self.NOOP_IDX] = 1.0
+            if self.include_noop: mask[self.NOOP_IDX] = 1.0
             return mask
 
         for idx, action in enumerate(self.discrete_actions[:-1]):
             x, y, rot = action
             w, d, h = self.dims_after_rotation(self.current_box, rot)
-
-            if (x + w > self.bin.width) or (y + d > self.bin.depth):
-                continue
-
+            if (x + w > self.bin.width) or (y + d > self.bin.depth): continue
             z = self.bin.find_lowest_z((w, d, h), x, y)
-
-            if z + h > self.bin.height:
-                continue
+            if z + h > self.bin.height: continue
 
             collision = False
             for b in self.bin.boxes:
                 bx, by, bz = b.position
                 bw, bd, bh = self.dims_after_rotation(b, b.rotation_type)
-
-                overlap_x = not (x + w <= bx or x >= bx + bw) 
-                overlap_y = not (y + d <= by or y >= by + bd) 
-                overlap_z = not (z + h <= bz or z >= bz + bh)  
-
-                if overlap_x and overlap_y and overlap_z:
+                if not (x + w <= bx or x >= bx + bw) and \
+                   not (y + d <= by or y >= by + bd) and \
+                   not (z + h <= bz or z >= bz + bh):
                     collision = True
                     break
+            if not collision: mask[idx] = 1.0
 
-            if collision:
-                continue
-
-            mask[idx] = 1.0
-
-        if self.include_noop and mask.sum() == 0:
-            mask[self.NOOP_IDX] = 1.0
+        if self.include_noop and mask.sum() == 0: mask[self.NOOP_IDX] = 1.0
         return mask
 
+    # --------------------------------------------------------------------------
+    # GEOMETRIC & METRIC CALCULATIONS
+    # --------------------------------------------------------------------------
+
+    def dims_after_rotation(self, box, rot):
+        """Return (w, d, h) after applying a rotation index."""
+        w0, d0, h0 = box.width, box.depth, box.height
+        rot = int(rot) % 6
+        if rot == 0: return w0, d0, h0
+        if rot == 1: return w0, h0, d0
+        if rot == 2: return d0, w0, h0
+        if rot == 3: return h0, d0, w0
+        if rot == 4: return d0, h0, w0
+        if rot == 5: return h0, w0, d0
+        return w0, d0, h0
+
     def current_max_height(self):
-        """
-        Get the maximum vertical (z) height currently occupied in the bin.
-
-        Returns:
-            float: 0.0 if no boxes; otherwise max over (z_bottom + rotated_height).
-        """
-        if not self.bin.boxes:
-            return 0.0
-
+        """Get the maximum vertical (z) height currently occupied."""
+        if not self.bin.boxes: return 0.0
         return max(b.position[2] + self.dims_after_rotation(b, b.rotation_type)[2] for b in self.bin.boxes)
+
+    def calculate_compactness(self, boxes):
+        """Absolute compactness score based on bounding box volume."""
+        if len(boxes) <= 1: return 1.0
+        min_x = min(b.position[0] for b in boxes)
+        min_y = min(b.position[1] for b in boxes)
+        min_z = min(b.position[2] for b in boxes)
+        max_x = max(b.position[0] + b.width for b in boxes)
+        max_y = max(b.position[1] + b.height for b in boxes)
+        max_z = max(b.position[2] + b.depth for b in boxes)
+        bounding_volume = (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
+        return sum(b.get_volume() for b in boxes) / bounding_volume if bounding_volume > 0 else 0.0
+
+    def calculate_contact_area(self, box):
+        """Calculate the total surface contact area of a box with others and bin walls."""
+        bx, by, bz = box.position
+        bw, bd, bh = self.dims_after_rotation(box, box.rotation_type)
+        contact_area = 0.0
+        if bz == 0: contact_area += bw * bd
+        if bx == 0: contact_area += bd * bh
+        if bx + bw == self.bin.width: contact_area += bd * bh
+        if by == 0: contact_area += bw * bh
+        if by + bd == self.bin.depth: contact_area += bw * bh
+
+        for other in self.bin.boxes:
+            if other.id == box.id: continue
+            ox, oy, oz = other.position
+            ow, od, oh = self.dims_after_rotation(other, other.rotation_type)
+            def overlap(c1, l1, c2, l2): return max(0.0, min(c1 + l1, c2 + l2) - max(c1, c2))
+            if (bx == ox + ow) or (bx + bw == ox): contact_area += overlap(by, bd, oy, od) * overlap(bz, bh, oz, oh)
+            if (by == oy + od) or (by + bd == oy): contact_area += overlap(bx, bw, ox, ow) * overlap(bz, bh, oz, oh)
+            if (bz == oz + oh) or (bz + bh == oz): contact_area += overlap(bx, bw, ox, ow) * overlap(by, bd, oy, od)
+        return contact_area
+
+    def _generate_boxes(self, n):
+        """Generate a list of random boxes for the episode."""
+        raw_boxes = generate_boxes(self.bin_size, num_items=n, seed=random.randint(0, 10000), structured=True)
+        return [BinBox(width=w, depth=d, height=h, id=i) for i, (w, d, h) in enumerate(raw_boxes)]
+
+    def get_placed_boxes_volume(self):
+        """Compute total volume of all currently placed boxes."""
+        return sum(box.get_volume() for box in self.bin.boxes)
+
+    def calculate_utilization_ratio(self):
+        """Compute used-volume ratio."""
+        return sum(b.get_volume() for b in self.bin.boxes) / self.bin.bin_volume()
