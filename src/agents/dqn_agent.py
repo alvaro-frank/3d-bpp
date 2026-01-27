@@ -73,7 +73,7 @@ class DQNAgent:
     Manages experience replay, epsilon/softmax exploration, and
     training of an online Q-network with a target network for stability.
     """
-    def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', exploration="epsilon"):
+    def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', exploration="epsilon", total_training_steps=100000):
         """
         Initialize the agent.
 
@@ -110,7 +110,7 @@ class DQNAgent:
         self.exploration = exploration
         self.epsilon_start = 1.0
         self.epsilon_final = 0.10
-        self.epsilon_decay_steps = 40000 # how many steps until epsilon reaches final value
+        self.epsilon_decay_steps = int(total_training_steps * 0.6) # how many steps until epsilon reaches final value
         self.global_step = 0 # total environment steps taken
         self.epsilon = self.epsilon_start # current epsilon
 
@@ -258,3 +258,27 @@ class DQNAgent:
         self.step_count += 1
         if self.step_count % self.update_target_steps == 0:
             self.target_model.load_state_dict(self.model.state_dict())
+            
+    def load(self, path):
+        """Carrega os pesos do modelo a partir de um ficheiro e sincroniza a rede target."""
+        if not path:
+            return
+
+        print(f"[DQN] Loading weights from {path}...")
+        
+        # Carrega o checkpoint (pode ser dicionário ou state_dict direto)
+        checkpoint = torch.load(path, map_location=self.device)
+        
+        # Lógica para suportar diferentes formatos de salvamento
+        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+        elif isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+            self.model.load_state_dict(checkpoint["state_dict"])
+        else:
+            # Assume que é o state_dict direto (como é salvo atualmente no train_dqn_agent.py)
+            self.model.load_state_dict(checkpoint)
+            
+        # IMPORTANTE: Sincronizar a Target Network imediatamente
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.eval()
+        print("[DQN] Weights loaded and Target Network synchronized.")

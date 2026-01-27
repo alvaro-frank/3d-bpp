@@ -14,7 +14,8 @@ def train_dqn_agent(
     bin_size=(10, 10, 10),
     max_boxes=35,
     gif_name="packing_dqn.gif",
-    generate_gif=False
+    generate_gif=False,
+    load_path=None
 ):
     """
     Train a DQN agent on the 3D Bin Packing Problem environment.
@@ -35,7 +36,12 @@ def train_dqn_agent(
     state = env.reset()
     state_dim = env.observation_space.shape[0] # number of features in the state
     action_dim = len(env.discrete_actions) # total number of discrete actions
-    agent = DQNAgent(state_dim, action_dim, exploration="softmax") # RL agent
+    total_steps_estimate = num_episodes * max_boxes
+    
+    agent = DQNAgent(state_dim, action_dim, exploration="softmax", total_training_steps=total_steps_estimate) # RL agent
+    
+    if load_path:
+        agent.load(load_path)
 
     rewards_per_episode = []
     volume_utilizations = [] # track utilization % per episode
@@ -114,7 +120,7 @@ def train_dqn_agent(
         mlflow.log_metric("boxes_placed", boxes_placed, step=episode)
         mlflow.log_metric("boxes_skipped", skipped_boxes, step=episode)
         
-        print(f"Episode {episode + 1}: Total Reward = {total_reward:.2f}")
+        #print(f"Episode {episode + 1}: Total Reward = {total_reward:.2f} | Boxes: {boxes_placed}/{max_boxes}")
 
         # "best so far" checkpoint by average reward
         if avg_reward > best_avg:
@@ -122,9 +128,17 @@ def train_dqn_agent(
             torch.save(
                 agent.model.state_dict(),
                 os.path.join(save_dir, f"dqn_best.pt")
-            ) 
+            )
+        
+        if (episode + 1) % 10 == 0:
+            avg_reward_10 = np.mean(rewards_per_episode[-10:])
+            avg_boxes_10 = np.mean([len(env.packed_boxes) for _ in range(10)])
+            avg_util_10 = np.mean(volume_utilizations[-10:])
+            
+            print(f"Ep {episode + 1:5d} | R(avg10): {avg_reward_10:7.2f} | "
+                  f"Boxes(avg10): {avg_boxes_10:5.1f}/{max_boxes} | "
+                  f"Util(avg10): {avg_util_10:5.1f}% | Epsilon: {agent.epsilon:.2f}")
 
-        #print(f"🎯 Episode {episode + 1}: Total Reward = {total_reward:.2f}, Epsilon = {agent.epsilon:.2f}, Volume Used = {pct_volume_used:.2f}%, Boxes placed = {len(env.bin.boxes)}/{env.max_boxes}")
         if (episode + 1) % 100 == 0:
             mean_reward = np.mean(rewards_per_episode[-100:])
             mean_util   = np.mean(volume_utilizations[-100:])
