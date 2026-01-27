@@ -108,10 +108,8 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model:
     
     with mlflow.start_run() as run:
         if agent_type == "dqn":
+            # DQN: build env/agent to pass into DQN training loop
             agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False, load_path=load_model)
-            
-            if load_model is not None:
-                print(f"Loaded DQN weights from: {load_model}")
             
             mlflow.pytorch.log_model(
                 agent.model,

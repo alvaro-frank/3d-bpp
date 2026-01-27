@@ -1,3 +1,9 @@
+# ==============================================================================
+# FILE: agents/dqn_agent.py
+# DESCRIPTION: Implementation of the Deep Q-Network (DQN) agent.
+#              Includes the CNN-based Q-Network architecture and the Agent class
+#              managing experience replay, exploration, and training.
+# ==============================================================================
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,18 +13,18 @@ from collections import deque
 
 class DQN(nn.Module):
     """
-    Deep Q-Network (DQN).
+    Deep Q-Network (DQN) architecture with CNN layers for spatial reasoning.
 
-    A feedforward neural network that maps input states to Q-values,
-    where each Q-value corresponds to the expected return of taking an action.
+    Maps the 3D bin state (heightmap) + extra features to Q-values for each action.
     """
     def __init__(self, input_dim, output_dim, map_size=(10,10)):
         """
-        Initialize the network.
+        Initialize the neural network layers.
 
         Args:
-            input_dim (int): Number of input features (state dimension).
-            output_dim (int): Number of discrete actions.
+            input_dim (int): Total size of the flattened input vector.
+            output_dim (int): Number of possible actions (discrete).
+            map_size (tuple): Dimensions of the bin base (width, depth) for the CNN.
         """
         super(DQN, self).__init__()
         
@@ -27,6 +33,7 @@ class DQN(nn.Module):
         
         self.extra_features_len = input_dim - self.map_area
         
+        # Spatial feature extractor (Heightmap processing)
         self.conv = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -37,6 +44,7 @@ class DQN(nn.Module):
         
         cnn_out_dim = 32 * self.map_w * self.map_d
         
+        # Decision head (Combining spatial and scalar features)
         self.fc = nn.Sequential(
             nn.Linear(cnn_out_dim + self.extra_features_len, 256),
             nn.ReLU(),
@@ -68,27 +76,30 @@ class DQN(nn.Module):
 
 class DQNAgent:
     """
-    Deep Q-Learning Agent.
+    Deep Q-Learning Agent handling interaction and training.
 
-    Manages experience replay, epsilon/softmax exploration, and
-    training of an online Q-network with a target network for stability.
+    Manages the Online and Target networks, Experience Replay buffer,
+    and Epsilon-Greedy / Softmax exploration strategies.
     """
     def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', exploration="epsilon", total_training_steps=100000):
         """
-        Initialize the agent.
+        Initialize the DQN Agent.
 
         Args:
             state_dim (int): Dimension of the state space.
             action_dim (int): Number of possible discrete actions.
+            map_size (tuple): Bin dimensions for the CNN.
             device (str): Computation device ('cpu' or 'cuda').
-            exploration (str): Exploration strategy ('epsilon' or 'softmax').
+            exploration (str): Strategy ('epsilon' or 'softmax').
+            epsilon_decay_steps (int): Number of steps to decay epsilon from start to final.
         """
         self.device = device
         self.map_size = map_size
-        # Online network (learned Q-function)
+        
+        # Online network (updates every step)
         self.model = DQN(state_dim, action_dim, map_size=map_size).to(device)
         
-        # Target network (updated less frequently to stabilize learning)
+        # Target network (updates periodically for stability)
         self.target_model = DQN(state_dim, action_dim, map_size=map_size).to(device)
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
@@ -121,19 +132,19 @@ class DQNAgent:
 
     def get_action(self, state, action_space, mask: np.ndarray = None):
         """
-        Select an action using epsilon-greedy or softmax exploration.
+        Select an action based on the current policy and exploration strategy.
 
         Args:
-            state (np.ndarray): Current state.
-            action_space (gym.spaces.Discrete): Action space object.
-            mask (np.ndarray, optional): Boolean mask of valid actions.
+            state (np.ndarray): Current observation from the environment.
+            action_space (gym.spaces.Discrete): The environment's action space.
+            mask (np.ndarray, optional): Binary mask of valid actions (1=valid, 0=invalid).
 
         Returns:
-            int: Selected action index.
+            int: The index of the selected action.
         """
         state_tensor = torch.from_numpy(np.asarray(state, dtype=np.float32)).unsqueeze(0).to(self.device)
 
-        # Atualização de temperatura (softmax) e epsilon (epsilon-greedy)
+        # Update exploration parameters (Temperature / Epsilon)
         frac_T = min(1.0, self.global_step / self.temperature_decay_steps)
         self.temperature = self.temperature_start + frac_T * (self.temperature_final - self.temperature_start)
 
@@ -142,18 +153,16 @@ class DQNAgent:
 
         self.global_step += 1
 
-        # --- Normalização da máscara ---
+        # Handle Action Masking
         valid_idxs = None
         if mask is not None:
             m = np.asarray(mask)
-            # converter para bool robustamente
             if m.dtype != np.bool_:
                 m = m > 0.5
             if m.ndim != 1:
-                raise ValueError(f"Mask deve ser 1D; recebido shape={m.shape}")
+                raise ValueError(f"Mask should be 1D; received shape={m.shape}")
             valid_idxs = np.flatnonzero(m)
             if valid_idxs.size == 0:
-                # fallback defensivo: sem válidas → ignora máscara
                 m = None
                 valid_idxs = None
             mask_bool = m
@@ -204,27 +213,27 @@ class DQNAgent:
 
     def store_transition(self, state, action_idx, reward, next_state, done):
         """
-        Save a transition into the replay buffer.
+        Store a transition tuple in the Replay Buffer.
 
         Args:
             state (np.ndarray): Current state.
-            action_idx (int): Chosen action index.
+            action_idx (int): Action taken.
             reward (float): Reward received.
-            next_state (np.ndarray): Next state after taking the action.
-            done (bool): Whether the episode terminated.
+            next_state (np.ndarray): Resulting state.
+            done (bool): Flag indicating if episode finished.
         """
         self.memory.append((state, action_idx, reward, next_state, done))
 
     def train(self):
         """
-        Perform one training step on a minibatch from the replay buffer.
-
-        Steps:
-            1. Sample random transitions.
-            2. Compute current Q-values with the online network.
-            3. Compute target Q-values with the target network.
-            4. Minimize MSE loss between current and target Q-values.
-            5. Periodically update the target network.
+        Execute one training step using a batch from the Replay Buffer.
+        
+        Performs:
+        1. Sampling a random batch.
+        2. Computing Q(s, a) using the Online Network.
+        3. Computing Target Q using the Target Network (Bellman Equation).
+        4. Gradient descent on the MSE loss.
+        5. Periodic Target Network update.
         """
         if len(self.memory) < self.batch_size:
             return
@@ -260,25 +269,26 @@ class DQNAgent:
             self.target_model.load_state_dict(self.model.state_dict())
             
     def load(self, path):
-        """Carrega os pesos do modelo a partir de um ficheiro e sincroniza a rede target."""
+        """
+        Load model weights from a checkpoint file.
+
+        Args:
+            path (str): File path to the .pt or .pth checkpoint.
+        """
         if not path:
             return
 
         print(f"[DQN] Loading weights from {path}...")
         
-        # Carrega o checkpoint (pode ser dicionário ou state_dict direto)
         checkpoint = torch.load(path, map_location=self.device)
         
-        # Lógica para suportar diferentes formatos de salvamento
         if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
             self.model.load_state_dict(checkpoint["model_state_dict"])
         elif isinstance(checkpoint, dict) and "state_dict" in checkpoint:
             self.model.load_state_dict(checkpoint["state_dict"])
         else:
-            # Assume que é o state_dict direto (como é salvo atualmente no train_dqn_agent.py)
             self.model.load_state_dict(checkpoint)
             
-        # IMPORTANTE: Sincronizar a Target Network imediatamente
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
         print("[DQN] Weights loaded and Target Network synchronized.")

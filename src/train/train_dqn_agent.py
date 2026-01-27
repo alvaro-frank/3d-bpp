@@ -1,3 +1,9 @@
+# ==============================================================================
+# FILE: train/train_dqn_agent.py
+# DESCRIPTION: Training loop for the DQN agent in the 3D Bin Packing environment.
+#              Handles episode generation, epsilon decay, metrics logging,
+#              and model checkpointing.
+# ==============================================================================
 import numpy as np
 import os
 from environment.packing_env import PackingEnv
@@ -19,27 +25,33 @@ def train_dqn_agent(
 ):
     """
     Train a DQN agent on the 3D Bin Packing Problem environment.
+    
+    Includes automatic epsilon decay scheduling based on total estimated steps
+    and periodic logging of training metrics.
 
     Args:
-    - num_episodes (int): number of training episodes
-    - bin_size (tuple): dimensions of the bin (width, height, depth)
-    - max_boxes (int): number of boxes per episode
-    - gif_name (str): output filename for training GIF (if enabled)
-    - generate_gif (bool): whether to save training progress as GIF
+        num_episodes (int): Number of training episodes.
+        bin_size (tuple): Dimensions of the bin (width, height, depth).
+        max_boxes (int): Maximum number of boxes per episode.
+        gif_name (str): Output filename for training GIF (if enabled).
+        generate_gif (bool): Whether to save training progress as GIF.
+        load_path (str, optional): Path to a checkpoint file to resume training.
 
     Returns:
-    - DQNAgent: the trained agent
+        DQNAgent: The trained agent instance.
     """
     
-    # Initialize environment and agent
+    # Initialize environment
     env = PackingEnv(bin_size=bin_size, max_boxes=max_boxes, include_noop=False)
     state = env.reset()
     state_dim = env.observation_space.shape[0] # number of features in the state
     action_dim = len(env.discrete_actions) # total number of discrete actions
     total_steps_estimate = num_episodes * max_boxes
     
+    # Initialize Agent
     agent = DQNAgent(state_dim, action_dim, exploration="softmax", total_training_steps=total_steps_estimate) # RL agent
     
+    # Load weights if provided
     if load_path:
         agent.load(load_path)
 
@@ -119,8 +131,6 @@ def train_dqn_agent(
         
         mlflow.log_metric("boxes_placed", boxes_placed, step=episode)
         mlflow.log_metric("boxes_skipped", skipped_boxes, step=episode)
-        
-        #print(f"Episode {episode + 1}: Total Reward = {total_reward:.2f} | Boxes: {boxes_placed}/{max_boxes}")
 
         # "best so far" checkpoint by average reward
         if avg_reward > best_avg:
@@ -165,8 +175,7 @@ def train_dqn_agent(
                              for i in range(0, len(volume_utilizations), window)]
     episodes_axis = list(range(window, len(rewards_per_episode)+1, window))
 
-    # TO DO: Pass to utils/visualization.py
-    # Plot learning curve AFTER all episodes
+    # Plot Learning Curve
     plt.figure(figsize=(12,5))
 
     # Total Reward curve
