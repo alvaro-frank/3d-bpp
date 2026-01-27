@@ -1,4 +1,9 @@
-# src/train/train_ppo_agent.py
+# ==============================================================================
+# FILE: train/train_ppo_agent.py
+# DESCRIPTION: Training script for the PPO agent in the Packing Environment.
+#              Handles the training loop, MLflow logging, evaluation, and metrics.
+# ==============================================================================
+
 import os
 import time
 import matplotlib.pyplot as plt
@@ -9,6 +14,10 @@ from typing import Optional, Dict, Any, List
 import numpy as np
 import torch
 from dataclasses import asdict
+
+# ------------------------------------------------------------------------------
+# CONFIGURATION & DATA STRUCTURES
+# ------------------------------------------------------------------------------
 
 @dataclass
 class TrainPPOConfig:
@@ -35,6 +44,10 @@ class TrainPPOConfig:
     save_models: str = "runs/ppo/models"
     seed: Optional[int] = 42
 
+# ------------------------------------------------------------------------------
+# HELPER UTILITIES
+# ------------------------------------------------------------------------------
+
 def _ensure_dir(path: str):
     """
     Create a directory if it doesn't exist.
@@ -60,7 +73,6 @@ def _maybe_valid_mask(env) -> Optional[np.ndarray]:
             pass
     return None
 
-
 @torch.no_grad()
 def _bootstrap_value_if_truncated(agent, last_obs, was_truncated: bool) -> float:
     """
@@ -83,6 +95,9 @@ def _bootstrap_value_if_truncated(agent, last_obs, was_truncated: bool) -> float
         return float(v.item())
     return 0.0
 
+# ------------------------------------------------------------------------------
+# EVALUATION & TRAINING LOGIC
+# ------------------------------------------------------------------------------
 
 def evaluate(env, agent, episodes: int = 5) -> Dict[str, float]:
     """
@@ -134,19 +149,15 @@ def evaluate(env, agent, episodes: int = 5) -> Dict[str, float]:
 
 def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     """
-    Train a PPO agent for a given number of episodes, with optional periodic evaluation
-    and checkpointing. Saves a learning curve plot at the end.
+    Train a PPO agent for a given number of episodes.
 
     Args:
-        env: Environment instance (must support reset/step and optional valid_action_mask()).
-        agent: PPO agent implementing get_action(), store_transition(), train(), and save().
-        cfg: Training configuration (see TrainPPOConfig).
+        env: Environment instance.
+        agent: PPO agent.
+        cfg: Training configuration.
 
     Returns:
-        Dict[str, Any]: {
-            'history': list of per-episode logs,
-            'best_eval_return': best evaluation mean return seen (or -inf if eval disabled)
-        }
+        Dict[str, Any]: History and best evaluation results.
     """
     if cfg.seed is not None and hasattr(env, "seed"):
         try:
@@ -288,8 +299,8 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     
     agent.save(os.path.join(cfg.save_models, "ppo_final.pt"))
 
+    # Learning Curve Plotting
     save_path = os.path.join(cfg.save_dir, "learning_curve.png")
-
     rewards_smoothed = [np.mean(rewards_per_episode[i:i+window])
                         for i in range(0, len(rewards_per_episode), window)]
     utilizations_smoothed = [np.mean(volume_utilizations[i:i+window])
@@ -297,8 +308,6 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     episodes_axis = list(range(window, len(rewards_per_episode) + 1, window))
 
     plt.figure(figsize=(12, 5))
-
-    # Total Reward curve
     plt.subplot(1, 2, 1)
     plt.plot(episodes_axis, rewards_smoothed, label="Total Reward (avg/100)")
     plt.xlabel("Episode")
@@ -306,7 +315,6 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     plt.title("Learning Curve (Reward)")
     plt.legend()
 
-    # Utilization curve
     plt.subplot(1, 2, 2)
     plt.plot(episodes_axis, utilizations_smoothed, label="Volume Utilization % (avg/100)", color="orange")
     plt.xlabel("Episode")
@@ -320,21 +328,13 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
 
     return {"history": history, "best_eval_return": best_eval}
 
+# ------------------------------------------------------------------------------
+# SANITY CHECKS
+# ------------------------------------------------------------------------------
+
 def sanity_check_mask(env, episodes=5):
     """
     Quick validation for env.valid_action_mask() behavior.
-
-    Checks per step:
-        - shape matches env action dimension
-        - no NaN/Inf, no negatives, not all zeros
-        - counts valid actions
-
-    Args:
-        env: Environment instance.
-        episodes: Number of episodes to probe.
-
-    Prints:
-        Problem counters and min/mean/max number of valid actions per step.
     """
     import numpy as np
     problems = {"nan":0, "neg":0, "wrong_shape":0, "all_zero":0}
