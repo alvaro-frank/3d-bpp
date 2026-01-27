@@ -41,6 +41,17 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Setup DVC
+      env:
+        DVC_USER: ${{ secrets.DAGSHUB_USERNAME }}
+        DVC_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+      run: |
+        dvc remote modify origin --project auth basic
+        dvc remote modify origin --project user $DVC_USER
+        dvc remote modify origin --project password $DVC_TOKEN
+        
+        dvc pull
 
     - name: Run Unit Tests with Pytest
       env:
