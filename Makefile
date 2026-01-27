@@ -13,7 +13,7 @@ PY  := $(VENV_BIN)\python.exe
 MKVENV := if not exist .venv ( $(PYTHON) -m venv .venv )
 
 # ---------- Targets ----------
-all: setup train evaluate ## Create venv, train and evaluate agent
+all: setup pull pytest train evaluate ## Create venv, pull data, test, train and evaluate agent
 
 setup: ## Create virtualenv and install minimal deps
 	$(MKVENV)
@@ -31,3 +31,6 @@ mlflow: ## Launch MLflow UI
 
 pytest: ## Run tests with pytest
 	$(PY) -m pytest tests/
+
+pull: ## Download models and artifacts from DVC
+	dvc pull

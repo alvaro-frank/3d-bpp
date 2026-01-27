@@ -6,3 +6,5 @@ imageio==2.37.0
 mlflow==3.5.0
 pytest==8.0.0
 flake8==7.0.0
+dvc>=3.0.0
+dagshub
