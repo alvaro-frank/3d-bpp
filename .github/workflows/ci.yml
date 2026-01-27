@@ -35,4 +35,4 @@ jobs:
       env:
         PYTHONPATH: src
       run: |
-        pytest tests/
+        python -m pytest tests/
