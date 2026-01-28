@@ -8,3 +8,7 @@ pytest==8.0.0
 flake8==7.0.0
 dvc>=3.0.0
 dagshub
+fastapi
+uvicorn
+httpx
+pytest-asyncio
