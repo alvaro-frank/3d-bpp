@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  bpp-api:
+    build: .
+    image: 3d-bpp-api:v1
+    container_name: 3d-bpp-container
+    ports:
+      - "8003:80"
+    volumes:
+      - .:/app
+    environment:
+      - ENV=production
+      - PYTHONPATH=/app/src
+      - MLFLOW_TRACKING_URI=file:/app/mlruns
+      - CUDA_VISIBLE_DEVICES=""
+    stdin_open: true
+    tty: true
+    restart: always
+    command: >
+      sh -c "uvicorn src.api:app --host 0.0.0.0 --port 80"
+    # Use GPU NVIDIA from server
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
