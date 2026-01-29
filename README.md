@@ -1,57 +1,37 @@
 # 3D Bin Packing
 
-A research project for the 3D Bin Packing Problem using **Reinforcement Learning**.  
-It includes a custom Gym environment, DQN/PPO agents, a heuristic baseline, and 3D visualizations (with GIF export).
+A production-grade Deep Reinforcement Learning project that solves the 3D Bin Packing Problem. It implements **DQN** and **PPO** agents within a custom Gym environment, complete with heuristic baselines, 3D visualizations, and a production-ready API for recursive packing.
 
-![Packing GIF](images/ppo_5000steps.gif)
+This project demonstrates a complete MLOps lifecycle: from training agents using PyTorch and tracking experiments with **MLflow**, to versioning artifacts with **DVC** and deploying a **FastAPI** inference service via **Docker**.
 
-## Features
-- Custom `gym.Env` for 3D bin packing (`src/environment/packing_env.py`).
-- Two RL agents: **DQN** and **PPO** (`src/agents/`).
-- Heuristic baseline (bottom-left-back) for comparison (`src/heuristics/heuristic.py`).
-- Training/evaluation utilities and fixed test sets (`src/train/`, `src/evals/`, `src/utils/testsets.py`).
-- 3D visualization and GIF generation (`src/utils/visualization.py`).
+<p align="center">
+    <img src="images/ppo_5000steps.gif" alt="PPO 5000 steps" width="600">
+</p>
 
-## Observation Space
-The **state representation** encodes the environment at each step:
-- **Bin state:** Occupancy grid / 3D representation of already placed boxes.
-- **Next box features:** Dimensions (w, h, d) and orientation.
-- **Packing statistics:** Remaining space, number of boxes placed, total volume used, etc.
-
-This provides the agent with both spatial and sequential context to decide where to place the next box.
-
-## Reward Shaping
-The reward function is crucial for guiding the agent:
-- **Positive reward** for successfully placing a box in the bin without overlap.  
-- **Volume-based reward:** Proportional to the filled volume fraction (encourages tighter packing).  
-- **Penalty** for invalid placements or leaving too much unused space.  
-- **Episode reward:** Cumulative sum reflects how efficiently the agent packed all boxes.
-
-Reward shaping is designed to balance exploration (trying placements) and exploitation (maximizing packing efficiency).
-
-## Project Structure
+## 📂 Project Structure
 ```
-src/
-  agents/              # DQN & PPO agents
-  environment/         # Bin, Box, and PackingEnv (gym.Env)
-  evals/               # Evaluation helpers (agents & heuristic)
-  heuristics/          # Heuristic baseline(s)
-  train/               # Training loops for DQN & PPO
-  utils/               # Action space, box generation, seeding, viz, test sets
-  main.py              # End-to-end script: train + evaluate + visualize
-runs/                  # Plots, and generated GIFs (outputs)
-  dqn/
-    models/            # Saved dqn agents
-  ppo/
-    models/            # Saved ppo agents
-requirements.txt
-Makefile
+├── .github/                 # CI/CD configuration
+├── .dvc/                    # DVC Configuration
+├── src/
+│   ├── agents/              # DQN & PPO Agent implementations
+│   ├── environment/         # Gym Env, Bin, and Box logic
+│   ├── evals/               # Evaluation scripts (Agent vs Heuristic)
+│   ├── heuristics/          # BLB Heuristic implementation
+│   ├── train/               # Training loops
+│   ├── utils/               # Visualization, Action Space, Box Generator
+│   ├── api.py               # FastAPI inference endpoints
+│   └── main.py              # CLI Entrypoint
+├── tests/                   # Unit and Integration tests
+├── docker-compose.yml       # Docker services configuration
+├── Dockerfile               # Docker image definition
+├── Makefile                 # Command automation
+├── requirements.txt         # Python dependencies
+└── README.md                # Project documentation
 ```
 
-## Requirements
-```
-pip install -r requirements.txt
-```
+## 🛠️ Setup & Requirements
+
+This project uses `make` for automation and `dvc` for data/artifact management.
 
 ---
 
