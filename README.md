@@ -174,7 +174,7 @@ The project exposes a REST API via FastAPI.
 docker-compose up --build
 ```
 
-**Packing Request**
+**Packing Request**:
 ```
 curl -X 'POST' \
   'http://localhost:8003/pack/ppo' \
@@ -186,10 +186,108 @@ curl -X 'POST' \
 }'
 ```
 
-**Response**
+**Response**:
 
 ```
-
+{
+  "agent": "ppo",
+  "total_generated": 15,
+  "successfully_packed": 13,
+  "volume_utilization": 93.60000000000001,
+  "plan": [
+    {
+      "id": 0,
+      "position": [0, 0, 0],
+      "rotation": 0,
+      "original_dims": [3, 10, 10],
+      "rotated_dims": [3, 10, 10]
+    },
+    {
+      "id": 1,
+      "position": [7, 0, 0],
+      "rotation": 1,
+      "original_dims": [3, 5, 9],
+      "rotated_dims": [3, 9, 5]
+    },
+    {
+      "id": 2,
+      "position": [5, 1, 0],
+      "rotation": 1,
+      "original_dims": [2, 10, 6],
+      "rotated_dims": [2, 6, 10]
+    },
+    {
+      "id": 3,
+      "position": [3, 0, 0],
+      "rotation": 0,
+      "original_dims": [2, 5, 10],
+      "rotated_dims": [2, 5, 10]
+    },
+    {
+      "id": 4,
+      "position": [3, 7, 0],
+      "rotation": 5,
+      "original_dims": [2, 10, 4],
+      "rotated_dims": [4, 2, 10]
+    },
+    {
+      "id": 5,
+      "position": [7, 0, 5],
+      "rotation": 1,
+      "original_dims": [1, 5, 10],
+      "rotated_dims": [1, 10, 5]
+    },
+    {
+      "id": 6,
+      "position": [8, 1, 5],
+      "rotation": 0,
+      "original_dims": [2, 6, 4],
+      "rotated_dims": [2, 6, 4]
+    },
+    {
+      "id": 7,
+      "position": [3, 5, 0],
+      "rotation": 1,
+      "original_dims": [2, 10, 2],
+      "rotated_dims": [2, 2, 10]
+    },
+    {
+      "id": 10,
+      "position": [8, 7, 5],
+      "rotation": 1,
+      "original_dims": [2, 3, 3],
+      "rotated_dims": [2, 3, 3]
+    },
+    {
+      "id": 11,
+      "position": [4, 9, 0],
+      "rotation": 1,
+      "original_dims": [3, 5, 1],
+      "rotated_dims": [3, 1, 5]
+    },
+    {
+      "id": 12,
+      "position": [8, 0, 9],
+      "rotation": 1,
+      "original_dims": [2, 1, 6],
+      "rotated_dims": [2, 6, 1]
+    },
+    {
+      "id": 13,
+      "position": [8, 7, 8],
+      "rotation": 1,
+      "original_dims": [2, 2, 3],
+      "rotated_dims": [2, 3, 2]
+    },
+    {
+      "id": 14,
+      "position": [4, 9, 5],
+      "rotation": 0,
+      "original_dims": [2, 1, 3],
+      "rotated_dims": [2, 1, 3]
+    }
+  ]
+}
 ```
 
 ## ⚙️ CI/CD Pipeline
@@ -202,7 +300,7 @@ This project implements a Continuous Integration pipeline via GitHub Actions.
 2. **Linting**: Enforces code quality using flake8.
 3. **Data Sync**: Configures DVC remote (DagsHub) using secrets to pull required artifacts.
 4. **Automated Testing**: Executes the full test suite via `pytest`, covering:
-     - **Unit Tests**: Validating feature engineering logic and data filtering.
+     - **Unit Tests**: Validating feature engineering logic and environment core logic.
      - **Integration Tests**: Verifying the reliability of the FastAPI endpoints.
   
 **Required GitHub Secrets**
