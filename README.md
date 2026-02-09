@@ -1,5 +1,14 @@
 # 3D Bin Packing
 
+![CI Status](https://github.com/alvaro-frank/sentiment_analysis/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)
+![DVC](https://img.shields.io/badge/Data-DVC-9cf?logo=dvc&logoColor=white)
+![MLflow](https://img.shields.io/badge/MLflow-3.5.0-0194E2?logo=mlflow&logoColor=white)
+![PPO](https://img.shields.io/badge/Agent-PPO-FF6F61)
+![DQN](https://img.shields.io/badge/Agent-DQN-8A2BE2)
+
 A production-grade Deep Reinforcement Learning project that solves the 3D Bin Packing Problem. It implements **DQN** and **PPO** agents within a custom Gym environment, complete with heuristic baselines, 3D visualizations, and a production-ready API for recursive packing.
 
 This project demonstrates a complete MLOps lifecycle: from training agents using PyTorch and tracking experiments with **MLflow**, to versioning artifacts with **DVC** and deploying a **FastAPI** inference service via **Docker**.
