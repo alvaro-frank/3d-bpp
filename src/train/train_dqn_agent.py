@@ -126,5 +126,30 @@ def train_dqn_agent(
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
+    
+    # ==========================================
+    # ONNX EXPORTATION
+    # ==========================================
+    agent.model.eval()
+    
+    obs_dim = int(np.prod(env.observation_space.shape))
+    
+    dummy_input = torch.randn(1, obs_dim).to(agent.device)
+    
+    onnx_path = os.path.join(save_dir, "dqn_final.onnx")
+    torch.onnx.export(
+        agent.model,                 
+        dummy_input,                  
+        onnx_path,                   
+        export_params=True,           
+        opset_version=11,            
+        do_constant_folding=True,     
+        input_names=['state'],        
+        output_names=['q_values'],    
+        dynamic_axes={'state': {0: 'batch_size'}, 'q_values': {0: 'batch_size'}}
+    )
+    
+    mlflow.log_artifact(onnx_path, artifact_path="onnx_model")
+    print(f"Exported ONNX DQN Model: {onnx_path}")
 
     return agent
