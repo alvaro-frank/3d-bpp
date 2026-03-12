@@ -1,25 +1,23 @@
 version: '3.8'
 
 services:
-  bpp-api:
+  bpp-trainer:
     build: .
-    image: 3d-bpp-api:v1
-    container_name: 3d-bpp-container
-    ports:
-      - "8003:80"
+    image: 3d-bpp-trainer:v1
+    container_name: 3d-bpp-training-env
     volumes:
       - .:/app
     environment:
-      - ENV=production
+      - ENV=development
       - PYTHONPATH=/app/src
       - MLFLOW_TRACKING_URI=file:/app/mlruns
       - CUDA_VISIBLE_DEVICES=""
     stdin_open: true
     tty: true
-    restart: always
-    command: >
-      sh -c "uvicorn src.api:app --host 0.0.0.0 --port 80"
-    # Use GPU NVIDIA from server
+    restart: "no"
+    command: tail -f /dev/null
+    
+    # Use GPU NVIDIA from server (Descomentar se usares GPU)
     # deploy:
     #   resources:
     #     reservations:
