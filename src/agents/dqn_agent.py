@@ -10,7 +10,21 @@ import torch.optim as optim
 import random
 import numpy as np
 from collections import deque
+from dataclasses import dataclass
 
+@dataclass
+class DQNConfig:
+    exploration: str = "epsilon"
+    lr: float = 1e-3
+    gamma: float = 0.99
+    batch_size: int = 64
+    update_target_steps: int = 100
+    epsilon_start: float = 1.0
+    epsilon_final: float = 0.10
+    temperature_start: float = 1.0
+    temperature_final: float = 0.1
+    temperature_decay_steps: int = 100000
+    
 class DQN(nn.Module):
     """
     Deep Q-Network (DQN) architecture with CNN layers for spatial reasoning.
@@ -81,20 +95,13 @@ class DQNAgent:
     Manages the Online and Target networks, Experience Replay buffer,
     and Epsilon-Greedy / Softmax exploration strategies.
     """
-    def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', exploration="epsilon", total_training_steps=100000):
+    def __init__(self, state_dim, action_dim, map_size=(10,10), device='cpu', config: DQNConfig = None, total_training_steps=100000):
         """
         Initialize the DQN Agent.
-
-        Args:
-            state_dim (int): Dimension of the state space.
-            action_dim (int): Number of possible discrete actions.
-            map_size (tuple): Bin dimensions for the CNN.
-            device (str): Computation device ('cpu' or 'cuda').
-            exploration (str): Strategy ('epsilon' or 'softmax').
-            epsilon_decay_steps (int): Number of steps to decay epsilon from start to final.
         """
         self.device = device
         self.map_size = map_size
+        self.config = config or DQNConfig()  # Carrega as configurações!
         
         # Online network (updates every step)
         self.model = DQN(state_dim, action_dim, map_size=map_size).to(device)
@@ -104,30 +111,32 @@ class DQNAgent:
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
 
-         # Optimizer and loss function
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
+        # Optimizer and loss function (Agora usa a LR do config!)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.criterion = nn.MSELoss()
         
         # Replay buffer
         self.memory = deque(maxlen=50000)
 
-        # Training settings
-        self.batch_size = 64
-        self.gamma = 0.99 # discount factor
-        self.update_target_steps = 100 # target network update frequency
+        # Training settings (Agora vêm do config!)
+        self.batch_size = self.config.batch_size
+        self.gamma = self.config.gamma 
+        self.update_target_steps = self.config.update_target_steps
         self.step_count = 0
 
-        # Exploration parameters
-        self.exploration = exploration
-        self.epsilon_start = 1.0
-        self.epsilon_final = 0.10
-        self.epsilon_decay_steps = int(total_training_steps * 0.6) # how many steps until epsilon reaches final value
-        self.global_step = 0 # total environment steps taken
-        self.epsilon = self.epsilon_start # current epsilon
+        # Exploration parameters (Agora vêm do config!)
+        self.exploration = self.config.exploration
+        self.epsilon_start = self.config.epsilon_start
+        self.epsilon_final = self.config.epsilon_final
+        
+        # Mantemos o cálculo do decay steps dinâmico com base no total de passos
+        self.epsilon_decay_steps = int(total_training_steps * 0.6) 
+        self.global_step = 0
+        self.epsilon = self.epsilon_start 
 
-        self.temperature_start = 1.0
-        self.temperature_final = 0.1
-        self.temperature_decay_steps = 100000
+        self.temperature_start = self.config.temperature_start
+        self.temperature_final = self.config.temperature_final
+        self.temperature_decay_steps = self.config.temperature_decay_steps
         self.temperature = self.temperature_start
 
     def get_action(self, state, action_space, mask: np.ndarray = None):
