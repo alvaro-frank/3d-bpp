@@ -10,3 +10,5 @@ dvc>=3.0.0
 dagshub
 hydra-core
 omegaconf
+onnx
+onnxscript
