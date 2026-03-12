@@ -1,0 +1,3 @@
+bin_size: [10, 10, 10]
+max_boxes: 50
+include_noop: false

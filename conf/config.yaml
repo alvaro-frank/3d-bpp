@@ -1,0 +1,12 @@
+defaults:
+  - agent: ppo
+  - environment: default
+  - _self_
+
+seed: 41
+mode: train
+episodes: 200
+
+tests: 20
+make_gifs: false
+load_model: null
