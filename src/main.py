@@ -3,14 +3,16 @@
 # DESCRIPTION: Entry point for the 3D-BPP (3D Bin Packing Problem) project.
 #              Provides a CLI to train DQN/PPO agents or evaluate them against 
 #              heuristic baselines using MLflow for experiment tracking.
+#              Now powered by Hydra for configuration management.
 # ==============================================================================
 import os
 from pathlib import Path
-import argparse
 import glob
 import numpy as np
 import torch
 import mlflow
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
 from evals.evaluate_agent import evaluate_agent_on_episode
 from evals.evaluate_heuristic import evaluate_heuristic_on_episode
@@ -37,16 +39,22 @@ def _build_dqn(env, exploration: str = "softmax"):
 
     return DQNAgent(state_dim, act_dim, map_size=map_size, exploration=exploration)
 
-def _build_ppo(env):
+def _build_ppo(cfg: DictConfig, env):
     obs_dim = int(np.prod(env.observation_space.shape))
     act_dim = env.action_space.n if hasattr(env, "action_space") else len(getattr(env, "discrete_actions", []))
+    map_size = (env.bin_size[0], env.bin_size[1])
+    
     ppo_cfg = PPOConfig(
-        gamma=0.99, gae_lambda=0.95, clip_eps=0.2,
-        vf_coef=0.5, ent_coef=0.01, lr=3e-4,
-        epochs=4, minibatch_size=1024,
+        gamma=cfg.agent.gamma, 
+        gae_lambda=cfg.agent.gae_lambda, 
+        clip_eps=cfg.agent.clip_eps,
+        vf_coef=cfg.agent.vf_coef, 
+        ent_coef=cfg.agent.ent_coef, 
+        lr=cfg.agent.lr,
+        epochs=cfg.agent.epochs, 
+        minibatch_size=cfg.agent.minibatch_size,
         device="cuda" if torch.cuda.is_available() else "cpu",
     )
-    map_size = (env.bin_size[0], env.bin_size[1])
 
     return PPOAgent(obs_dim=obs_dim, act_dim=act_dim, map_size=map_size, config=ppo_cfg)
 
@@ -60,10 +68,8 @@ def _extract_state_dict(ckpt):
         for k in ("model", "model_state_dict", "state_dict"):
             if k in ckpt and isinstance(ckpt[k], dict):
                 return ckpt[k]
-        # Heuristic: if it looks like a state_dict (all tensor-like leaves)
         if all(isinstance(v, (dict, torch.Tensor)) for v in ckpt.values()):
-            return ckpt  # assume it's already a state_dict
-    # Fallback: raise a helpful error
+            return ckpt
     raise ValueError(
         "Checkpoint format not recognized. Expected keys like "
         "'model', 'model_state_dict', or 'state_dict'."
@@ -99,37 +105,38 @@ def _auto_find_checkpoint(agent_type: str) -> str | None:
 # COMMAND: TRAIN
 # ------------------------------------------------------------------------------
 
-def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model: str | None):
-    seed_all(seed)
-    print(f"Training {agent_type.upper()} | episodes={episodes} boxes={boxes} seed={seed}")
+def cmd_train(cfg: DictConfig):
+    seed_all(cfg.seed)
+    print(f"Training {cfg.agent.name.upper()} | episodes={cfg.episodes} boxes={cfg.environment.max_boxes} seed={cfg.seed}")
     
     experiment_name = "3D-BPP Experiment"
     mlflow.set_experiment(experiment_name)
     
     with mlflow.start_run() as run:
-        if agent_type == "dqn":
-            # DQN: build env/agent to pass into DQN training loop
-            agent = dqn_train_loop(num_episodes=episodes, max_boxes=boxes, generate_gif=False, load_path=load_model)
-            
-            mlflow.pytorch.log_model(
-                agent.model,
-                artifact_path="model"
+        mlflow.log_params(OmegaConf.to_container(cfg, resolve=True))
+        
+        if cfg.agent.name == "dqn":
+            agent = dqn_train_loop(
+                num_episodes=cfg.episodes, 
+                max_boxes=cfg.environment.max_boxes, 
+                generate_gif=False, 
+                load_path=cfg.get("load_model", None)
             )
             
-            model_name = "3d-bpp-dqn" 
-            model_uri = f"runs:/{run.info.run_id}/model"
-            mlflow.register_model(model_uri, model_name)
+            mlflow.pytorch.log_model(agent.model, artifact_path="model")
+            mlflow.register_model(f"runs:/{run.info.run_id}/model", "3d-bpp-dqn")
+            
         else:
-            # PPO: build env/agent to pass into PPO training loop
-            env = _build_env(max_boxes=boxes, include_noop=False)
-            agent = _build_ppo(env)
+            env = _build_env(max_boxes=cfg.environment.max_boxes, include_noop=cfg.environment.get("include_noop", False))
+            agent = _build_ppo(cfg, env)
 
+            load_model = cfg.get("load_model", None)
             if load_model is not None:
                 _load_weights_ppo(agent, load_model)
                 print(f"Loaded PPO weights from: {load_model}")
 
             train_cfg = TrainPPOConfig(
-                num_episodes=episodes,
+                num_episodes=cfg.episodes,
                 max_steps_per_episode=None,
                 log_every=10,
                 eval_every=0,
@@ -137,19 +144,14 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model:
                 save_every=50,
                 save_dir="runs/ppo",
                 save_models="runs/ppo/models",
-                seed=seed,
+                seed=cfg.seed,
             )
             os.makedirs(train_cfg.save_models, exist_ok=True)
             ppo_train_loop(env, agent, cfg=train_cfg)
             
-            mlflow.pytorch.log_model(
-                agent.model,
-                artifact_path="model"
-            )
+            mlflow.pytorch.log_model(agent.model, artifact_path="model")
+            mlflow.register_model(f"runs:/{run.info.run_id}/model", "3d-bpp-ppo")
             
-            model_name = "3d-bpp-ppo" 
-            model_uri = f"runs:/{run.info.run_id}/model"
-            mlflow.register_model(model_uri, model_name)
             try:
                 env.close()
             except Exception:
@@ -162,36 +164,37 @@ def cmd_train(agent_type: str, episodes: int, boxes: int, seed: int, load_model:
 # COMMAND: EVALUATE
 # ------------------------------------------------------------------------------
 
-def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path: str | None, make_gifs: bool):
-    """
-    Evaluate a trained agent against the heuristic on fixed test sets.
-    If model_path is None, tries to auto-discover a checkpoint under runs/*/models/.
-    """
-    seed_all(seed)
+def cmd_evaluate(cfg: DictConfig):
+    seed_all(cfg.seed)
+    
+    boxes = cfg.environment.max_boxes
+    agent_type = cfg.agent.name
+    tests = cfg.get("tests", 20)
+    make_gifs = cfg.get("make_gifs", False)
 
-    # Build env to size action/state correctly (we will reset with provided boxes per episode)
-    env = _build_env(max_boxes=boxes, include_noop=False)
+    env = _build_env(max_boxes=boxes, include_noop=cfg.environment.get("include_noop", False))
 
-    # Build agent + load weights (or skip for heuristic)
     if agent_type == "dqn":
         agent = _build_dqn(env)
-        model_path = model_path or _auto_find_checkpoint("dqn")
+        model_path = cfg.get("load_model", None) or _auto_find_checkpoint("dqn")
         if not model_path:
-            raise FileNotFoundError("No DQN checkpoint found. Pass --model PATH or train first.")
+            raise FileNotFoundError("No DQN checkpoint found. Pass load_model in config or train first.")
         _load_weights_dqn(agent, model_path)
         print(f"Loaded DQN weights from: {model_path}")
     else:
-        agent = _build_ppo(env)
-        model_path = model_path or _auto_find_checkpoint("ppo")
+        agent = _build_ppo(cfg, env)
+        model_path = cfg.get("load_model", None) or _auto_find_checkpoint("ppo")
         if not model_path:
-            raise FileNotFoundError("No PPO checkpoint found. Pass --model PATH or train first.")
+            raise FileNotFoundError("No PPO checkpoint found. Pass load_model in config or train first.")
         _load_weights_ppo(agent, model_path)
         print(f"Loaded PPO weights from: {model_path}")
 
     out_dir = Path("runs")
     out_dir.mkdir(parents=True, exist_ok=True)
+    
+    bin_size = (cfg.environment.bin_size[0], cfg.environment.bin_size[1], cfg.environment.bin_size[2])
     test_sets = make_test_sets(
-        seed=seed, n_episodes=tests, n_boxes=boxes, bin_size=(10,10,10)
+        seed=cfg.seed, n_episodes=tests, n_boxes=boxes, bin_size=bin_size
     )
 
     print("\nEvaluating Agent vs Heuristic:")
@@ -200,7 +203,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     best_heur  = (-1.0, None)
 
     for i, episode_boxes in enumerate(test_sets):
-        env_seed = seed + i 
+        env_seed = cfg.seed + i 
         agent_score = evaluate_agent_on_episode(
             agent,
             episode_boxes,
@@ -227,7 +230,6 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
     print("\nAgent Avg:", float(np.mean(agent_scores)))
     print("Heuristic Avg:", float(np.mean(heuristic_scores)))
 
-    # Optional GIFs of the best episodes
     if make_gifs:
         best_heur_score, best_heur_idx = best_heur
         best_agent_score, best_agent_idx = best_agent
@@ -236,7 +238,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
               f"with {best_heur_score:.2f}% volume used...")
         evaluate_heuristic_on_episode(
             test_sets[best_heur_idx],
-            env_seed=seed + best_heur_idx,
+            env_seed=cfg.seed + best_heur_idx,
             generate_gif=True,
             gif_name="runs/heuristic_best.gif",
         )
@@ -247,7 +249,7 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
         evaluate_agent_on_episode(
             agent,
             test_sets[best_agent_idx],
-            env_seed=seed + best_agent_idx,
+            env_seed=cfg.seed + best_agent_idx,
             generate_gif=True,
             gif_name=gif_file,
         )
@@ -262,41 +264,21 @@ def cmd_evaluate(agent_type: str, boxes: int, tests: int, seed: int, model_path:
 
 
 # ------------------------------------------------------------------------------
-# MAIN EXECUTION (CLI)
+# MAIN EXECUTION (HYDRA)
 # ------------------------------------------------------------------------------
-def main():
-    """
-    CLI with two independent commands:
-      - train    : train an agent
-      - evaluate : evaluate a trained agent vs heuristic
-    """
-    parser = argparse.ArgumentParser(description="3D-BPP: train/evaluate")
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
-    # train
-    p_train = sub.add_parser("train", help="Train an agent")
-    p_train.add_argument("--agent", choices=["dqn", "ppo"], default="dqn")
-    p_train.add_argument("--episodes", type=int, default=200)
-    p_train.add_argument("--boxes", type=int, default=50)
-    p_train.add_argument("--seed", type=int, default=41)
-    p_train.add_argument("--load", type=str, default=None)
-
-    # evaluate
-    p_eval = sub.add_parser("evaluate", help="Evaluate an agent vs heuristic")
-    p_eval.add_argument("--agent", choices=["dqn", "ppo"], default="dqn")
-    p_eval.add_argument("--model", type=str, default=None, help="Path to checkpoint; auto-detect if omitted")
-    p_eval.add_argument("--tests", type=int, default=20)
-    p_eval.add_argument("--boxes", type=int, default=50)
-    p_eval.add_argument("--seed", type=int, default=41)
-    p_eval.add_argument("--gifs", action="store_true", help="Also render GIFs of best episodes")
-
-    args = parser.parse_args()
-
-    if args.cmd == "train":
-        return cmd_train(args.agent, args.episodes, args.boxes, args.seed, args.load)
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
+def main(cfg: DictConfig):
+    print("=== ACTUAL CONFIGURATION ===")
+    print(OmegaConf.to_yaml(cfg))
+    print("==========================")
+    
+    if cfg.mode == "train":
+        return cmd_train(cfg)
+    elif cfg.mode == "evaluate":
+        return cmd_evaluate(cfg)
     else:
-        return cmd_evaluate(args.agent, args.boxes, args.tests, args.seed, args.model, args.gifs)
+        raise ValueError(f"Unknown mode: {cfg.mode}. Use 'mode=train' or 'mode=evaluate'")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
