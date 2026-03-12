@@ -325,6 +325,35 @@ def train_ppo_agent(env, agent, cfg: TrainPPOConfig) -> Dict[str, Any]:
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
+    
+    # ==========================================
+    # ONNX EXPORTATION
+    # ==========================================
+    agent.model.eval()
+    
+    obs_dim = int(np.prod(env.observation_space.shape))
+    dummy_input = torch.randn(1, obs_dim).to(agent.config.device)
+    
+    onnx_path = os.path.join(cfg.save_models, "ppo_final.onnx")
+    
+    torch.onnx.export(
+        agent.model,                  
+        dummy_input,                  
+        onnx_path,                    
+        export_params=True,           
+        opset_version=11,             
+        do_constant_folding=True,     
+        input_names=['state'],        
+        output_names=['action_probs', 'state_value'], 
+        dynamic_axes={
+            'state': {0: 'batch_size'}, 
+            'action_probs': {0: 'batch_size'},
+            'state_value': {0: 'batch_size'}
+        } 
+    )
+    
+    mlflow.log_artifact(onnx_path, artifact_path="onnx_model")
+    print(f"Exported ONNX PPO Model: {onnx_path}")
 
     return {"history": history, "best_eval_return": best_eval}
 
