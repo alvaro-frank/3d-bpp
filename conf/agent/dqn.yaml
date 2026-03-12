@@ -1,0 +1,15 @@
+name: dqn
+exploration: epsilon  # Pode ser 'epsilon' ou 'softmax'
+lr: 0.001
+gamma: 0.99
+batch_size: 64
+update_target_steps: 100
+
+# Parâmetros de Epsilon Greedy
+epsilon_start: 1.0
+epsilon_final: 0.10
+
+# Parâmetros de Softmax Temperature
+temperature_start: 1.0
+temperature_final: 0.1
+temperature_decay_steps: 100000
