@@ -213,3 +213,4 @@ __pycache__/
 *.py[cod]
 *$py.class
 /runs
+/outputs
