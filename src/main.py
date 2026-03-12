@@ -23,7 +23,7 @@ from utils.seed import seed_all
 
 from agents.ppo_agent import PPOAgent, PPOConfig
 from train.train_ppo_agent import train_ppo_agent as ppo_train_loop, TrainPPOConfig
-from agents.dqn_agent import DQNAgent
+from agents.dqn_agent import DQNAgent, DQNConfig
 
 
 # ------------------------------------------------------------------------------
@@ -32,12 +32,34 @@ from agents.dqn_agent import DQNAgent
 def _build_env(max_boxes: int, include_noop: bool = False):
     return PackingEnv(max_boxes=max_boxes, include_noop=include_noop)
 
-def _build_dqn(env, exploration: str = "softmax"):
+def _build_dqn(cfg: DictConfig, env):
     state_dim = int(np.prod(env.observation_space.shape))
     act_dim = env.action_space.n if hasattr(env, "action_space") else len(getattr(env, "discrete_actions", []))
-    map_size = (env.bin_size[0], env.bin_size[1])
+    map_size = (cfg.environment.bin_size[0], cfg.environment.bin_size[1])
 
-    return DQNAgent(state_dim, act_dim, map_size=map_size, exploration=exploration)
+    dqn_cfg = DQNConfig(
+        exploration=cfg.agent.exploration,
+        lr=cfg.agent.lr,
+        gamma=cfg.agent.gamma,
+        batch_size=cfg.agent.batch_size,
+        update_target_steps=cfg.agent.update_target_steps,
+        epsilon_start=cfg.agent.epsilon_start,
+        epsilon_final=cfg.agent.epsilon_final,
+        temperature_start=cfg.agent.temperature_start,
+        temperature_final=cfg.agent.temperature_final,
+        temperature_decay_steps=cfg.agent.temperature_decay_steps
+    )
+    
+    total_steps = cfg.episodes * cfg.environment.max_boxes
+
+    return DQNAgent(
+        state_dim=state_dim, 
+        action_dim=act_dim, 
+        map_size=map_size, 
+        config=dqn_cfg, 
+        total_training_steps=total_steps,
+        device="cuda" if torch.cuda.is_available() else "cpu"
+    )
 
 def _build_ppo(cfg: DictConfig, env):
     obs_dim = int(np.prod(env.observation_space.shape))
@@ -116,16 +138,28 @@ def cmd_train(cfg: DictConfig):
         mlflow.log_params(OmegaConf.to_container(cfg, resolve=True))
         
         if cfg.agent.name == "dqn":
+            env = _build_env(max_boxes=cfg.environment.max_boxes, include_noop=cfg.environment.get("include_noop", False))
+            agent = _build_dqn(cfg, env)
+
+            load_model = cfg.get("load_model", None)
+            if load_model is not None:
+                _load_weights_dqn(agent, load_model)
+                print(f"Loaded DQN weights from: {load_model}")
+
             agent = dqn_train_loop(
+                env=env,
+                agent=agent,
                 num_episodes=cfg.episodes, 
-                max_boxes=cfg.environment.max_boxes, 
-                generate_gif=False, 
-                load_path=cfg.get("load_model", None)
+                generate_gif=False
             )
             
             mlflow.pytorch.log_model(agent.model, artifact_path="model")
             mlflow.register_model(f"runs:/{run.info.run_id}/model", "3d-bpp-dqn")
             
+            try:
+                env.close()
+            except Exception:
+                pass
         else:
             env = _build_env(max_boxes=cfg.environment.max_boxes, include_noop=cfg.environment.get("include_noop", False))
             agent = _build_ppo(cfg, env)
@@ -175,7 +209,7 @@ def cmd_evaluate(cfg: DictConfig):
     env = _build_env(max_boxes=boxes, include_noop=cfg.environment.get("include_noop", False))
 
     if agent_type == "dqn":
-        agent = _build_dqn(env)
+        agent = _build_dqn(cfg, env)
         model_path = cfg.get("load_model", None) or _auto_find_checkpoint("dqn")
         if not model_path:
             raise FileNotFoundError("No DQN checkpoint found. Pass load_model in config or train first.")
