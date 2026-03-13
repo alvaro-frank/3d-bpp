@@ -2,16 +2,15 @@
 
 ![CI Status](https://github.com/alvaro-frank/sentiment_analysis/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)
 ![DVC](https://img.shields.io/badge/Data-DVC-9cf?logo=dvc&logoColor=white)
 ![MLflow](https://img.shields.io/badge/MLflow-3.5.0-0194E2?logo=mlflow&logoColor=white)
 ![PPO](https://img.shields.io/badge/Agent-PPO-FF6F61)
 ![DQN](https://img.shields.io/badge/Agent-DQN-8A2BE2)
 
-A production-grade Deep Reinforcement Learning project that solves the 3D Bin Packing Problem. It implements **DQN** and **PPO** agents within a custom Gym environment, complete with heuristic baselines, 3D visualizations, and a production-ready API for recursive packing.
+A production-grade Deep Reinforcement Learning project that solves the 3D Bin Packing Problem. It implements **DQN** and **PPO** agents within a custom Gym environment, complete with heuristic baselines and 3D visualizations.
 
-This project demonstrates a complete MLOps lifecycle: from training agents using PyTorch and tracking experiments with **MLflow**, to versioning artifacts with **DVC** and deploying a **FastAPI** inference service via **Docker**.
+This project demonstrates a complete MLOps lifecycle: from training agents using PyTorch and tracking experiments with **MLflow** to versioning artifacts with **DVC**.
 
 <p align="center">
     <img src="images/ppo_5000steps.gif" alt="PPO 5000 steps" width="600">
@@ -28,7 +27,6 @@ This project demonstrates a complete MLOps lifecycle: from training agents using
 │   ├── heuristics/          # BLB Heuristic implementation
 │   ├── train/               # Training loops
 │   ├── utils/               # Visualization, Action Space, Box Generator
-│   ├── api.py               # FastAPI inference endpoints
 │   └── main.py              # CLI Entrypoint
 ├── tests/                   # Unit and Integration tests
 ├── docker-compose.yml       # Docker services configuration
@@ -106,7 +104,7 @@ You can override defaults by passing variables on the command line:
 | `BOXES`    | Number of boxes per episode              | `15`    | `BOXES=30` |
 | `TESTS`     | Number of evaluation episodes                            | `20`    | `SEED=50` |
 
-3. **Unit & Integration Testing**
+3. **Unit Testing**
 
 Ensure preprocessing logic (negation handling, tokenization) and model architecture are valid.
 ```bash
@@ -142,13 +140,13 @@ To encourage dense and stable packing, the reward function is composed of severa
 
 ## 🐳 Docker Support
 
-This project is fully containerized to facilitate reproduction and GPU use.
+This project is fully containerized to facilitate reproduction and GPU use. The environment is configured for training and evaluation workloads.
 
 **Prerequisites**
 - **Docker** and **Docker Compose** installed.
 
 **How to Run**
-1. **Build and expose Predict API**: The command below builds the sentiment-analyser:v1 image and exposes a REST API to predict.
+1. **Build and Start the Environment**: The command below builds the `3d-bpp-trainer:v1` image and starts the container in the background, keeping it alive for executing commands.
 ```bash
 docker-compose up --build
 ```
@@ -160,143 +158,18 @@ docker-compose run --rm sentiment-app dvc pull
 
 3. **Run Training inside Docker**: You can execute the training pipeline within the isolated container.
 ```
-docker-compose run --rm bpp-api python src/main.py train --agent ppo --episodes 100
+docker-compose run --rm bpp-trainer python src/main.py train --agent ppo --episodes 100
 ```
 
-4. **Evaluate**: You can run any project script within the isolated container.
+4. **Evaluate**: You can run the evaluation script within the isolated container.
 ```bash
 # Evaluate the Model
-docker-compose run --rm bpp-api python src/evaluate_agent.py --agent ppo --tests 30 --boxes 20
+docker-compose run --rm bpp-trainer python src/evaluate_agent.py --agent ppo --tests 30 --boxes 20
 ```
 
 5. **Interactive Shell**: To access the terminal inside the container.
 ```bash
 docker-compose run --rm --entrypoint bash sentiment-app
-```
-
-## 🔌 API Usage
-
-The project exposes a REST API via FastAPI.
-
-**Start the API**:
-```bash
-docker-compose up --build
-```
-
-**Packing Request**:
-```
-curl -X 'POST' \
-  'http://localhost:8003/pack/ppo' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "bin_size": [10, 10, 10],
-  "num_boxes": 15,
-  "seed": 42
-}'
-```
-
-**Response**:
-
-```
-{
-  "agent": "ppo",
-  "total_generated": 15,
-  "successfully_packed": 13,
-  "volume_utilization": 93.60000000000001,
-  "plan": [
-    {
-      "id": 0,
-      "position": [0, 0, 0],
-      "rotation": 0,
-      "original_dims": [3, 10, 10],
-      "rotated_dims": [3, 10, 10]
-    },
-    {
-      "id": 1,
-      "position": [7, 0, 0],
-      "rotation": 1,
-      "original_dims": [3, 5, 9],
-      "rotated_dims": [3, 9, 5]
-    },
-    {
-      "id": 2,
-      "position": [5, 1, 0],
-      "rotation": 1,
-      "original_dims": [2, 10, 6],
-      "rotated_dims": [2, 6, 10]
-    },
-    {
-      "id": 3,
-      "position": [3, 0, 0],
-      "rotation": 0,
-      "original_dims": [2, 5, 10],
-      "rotated_dims": [2, 5, 10]
-    },
-    {
-      "id": 4,
-      "position": [3, 7, 0],
-      "rotation": 5,
-      "original_dims": [2, 10, 4],
-      "rotated_dims": [4, 2, 10]
-    },
-    {
-      "id": 5,
-      "position": [7, 0, 5],
-      "rotation": 1,
-      "original_dims": [1, 5, 10],
-      "rotated_dims": [1, 10, 5]
-    },
-    {
-      "id": 6,
-      "position": [8, 1, 5],
-      "rotation": 0,
-      "original_dims": [2, 6, 4],
-      "rotated_dims": [2, 6, 4]
-    },
-    {
-      "id": 7,
-      "position": [3, 5, 0],
-      "rotation": 1,
-      "original_dims": [2, 10, 2],
-      "rotated_dims": [2, 2, 10]
-    },
-    {
-      "id": 10,
-      "position": [8, 7, 5],
-      "rotation": 1,
-      "original_dims": [2, 3, 3],
-      "rotated_dims": [2, 3, 3]
-    },
-    {
-      "id": 11,
-      "position": [4, 9, 0],
-      "rotation": 1,
-      "original_dims": [3, 5, 1],
-      "rotated_dims": [3, 1, 5]
-    },
-    {
-      "id": 12,
-      "position": [8, 0, 9],
-      "rotation": 1,
-      "original_dims": [2, 1, 6],
-      "rotated_dims": [2, 6, 1]
-    },
-    {
-      "id": 13,
-      "position": [8, 7, 8],
-      "rotation": 1,
-      "original_dims": [2, 2, 3],
-      "rotated_dims": [2, 3, 2]
-    },
-    {
-      "id": 14,
-      "position": [4, 9, 5],
-      "rotation": 0,
-      "original_dims": [2, 1, 3],
-      "rotated_dims": [2, 1, 3]
-    }
-  ]
-}
 ```
 
 ## ⚙️ CI/CD Pipeline
